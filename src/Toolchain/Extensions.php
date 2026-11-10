@@ -29,8 +29,8 @@ use function trim;
  *
  * The root manifest's requirements, its development requirements when they are installed, and the requirements of
  * every installed package count, as do the conflicts of the root manifest and of every installed package. Extensions
- * compiled into every PHP build are left out; phar is always included, because packaging and packaged applications
- * need it.
+ * compiled into every PHP build are left out. phar is always included, because packaging and packaged applications
+ * need it, and so is tokenizer, because the build generator maps classes with it.
  */
 final class Extensions
 {
@@ -89,6 +89,7 @@ final class Extensions
         };
         $names = [
             'phar',
+            'tokenizer',
         ];
         $constraints = [];
 
