@@ -76,6 +76,7 @@ final class ExtensionsTest extends ToolchainTestCase
             'pcntl',
             'phar',
             'swoole',
+            'tokenizer',
         ], $extensions->names);
         self::assertSame([
             'swoole' => [

@@ -51,9 +51,9 @@ SKERNEL 把 WARNING 及以上级别的日志（包括框架的异常报告）写
 
 ## 受管 PHP
 
-SKERNEL 用自己构建的静态 PHP 来运行和打包项目，而不是系统上的 PHP。PHP 版本写成 `major.minor`（例如 `8.4`）时，选用 php.net 上该分支的最新发布；写成 `major.minor.patch`（例如 `8.4.27`）时精确使用该版本。不指定版本时，SKERNEL 选用满足根包 `require.php` 的最新受支持 PHP 版本。
+SKERNEL 用自己构建的静态 PHP 来构建、运行和打包项目，而不是系统上的 PHP。PHP 版本写成 `major.minor`（例如 `8.4`）时，选用 php.net 上该分支的最新发布；写成 `major.minor.patch`（例如 `8.4.27`）时精确使用该版本。不指定版本时，SKERNEL 选用满足根包 `require.php` 的最新受支持 PHP 版本。
 
-构建出的 PHP 包含项目安装所需的扩展，也就是根清单中、已安装时的开发依赖中，以及每个已安装包中的 `ext-*` 要求，另外再加上 `phar`。SKERNEL 使用固定版本的 [static-php-cli](https://github.com/crazywhalecc/static-php-cli)，按平台、版本和扩展组合各构建一次，产出静态 PHP CLI 和用于独立二进制的 micro 运行时，之后重复使用。micro 运行时把 `PHP_SAPI` 报告为 `cli`，所以独立二进制可以启动要求 CLI 的功能，例如 Swoole 服务。在 Linux 上，两者都静态链接 musl，并按该架构的基线 CPU 编译，不依赖具体的 Linux 发行版；SKERNEL 用固定版本的 [Zig](https://ziglang.org) 构建它们，首次使用时校验并安装到自己的主目录中。按照 Zig 软件基金会对下载工具的要求，Zig 以随机顺序从[社区镜像](https://ziglang.org/download/community-mirrors/)下载，某个镜像太慢就换下一个，没有镜像能提供时才从 ziglang.org 下载。
+构建出的 PHP 包含项目安装所需的扩展，也就是根清单中、已安装时的开发依赖中，以及每个已安装包中的 `ext-*` 要求，另外再加上打包所需的 `phar` 和 `build` 所需的 `tokenizer`。SKERNEL 使用固定版本的 [static-php-cli](https://github.com/crazywhalecc/static-php-cli)，按平台、版本和扩展组合各构建一次，产出静态 PHP CLI 和用于独立二进制的 micro 运行时，之后重复使用。micro 运行时把 `PHP_SAPI` 报告为 `cli`，所以独立二进制可以启动要求 CLI 的功能，例如 Swoole 服务。在 Linux 上，两者都静态链接 musl，并按该架构的基线 CPU 编译，不依赖具体的 Linux 发行版；SKERNEL 用固定版本的 [Zig](https://ziglang.org) 构建它们，首次使用时校验并安装到自己的主目录中。按照 Zig 软件基金会对下载工具的要求，Zig 以随机顺序从[社区镜像](https://ziglang.org/download/community-mirrors/)下载，某个镜像太慢就换下一个，没有镜像能提供时才从 ziglang.org 下载。
 
 当项目安装通过要求或冲突限制了 `ext-swoole` 或 `ext-redis` 的版本时，SKERNEL 会构建它接受的最新 PECL 稳定版。其他扩展使用 static-php-cli 选择的版本；如果构建出的扩展版本不被项目安装接受，构建会失败，而不是继续使用。
 
@@ -182,12 +182,12 @@ Package written to /path/to/my-app/target/my-app.
 
 ## 环境要求
 
-- PHP `>=8.4.27 <8.5`，并带有 `openssl`、`pcntl`、`phar` 和 `zlib` 扩展，仅在从源码运行 SKERNEL 时需要；安装时由 Composer 检查所需的 PHP 扩展。
+- PHP `>=8.4.27 <8.5`，并带有 `openssl`、`pcntl`、`phar`、`tokenizer` 和 `zlib` 扩展，仅在从源码运行 SKERNEL 时需要；安装时由 Composer 检查所需的 PHP 扩展。
 - 首次构建受管 PHP 时需要联网，以及 static-php-cli 的构建工具，详见[受管 PHP](#受管-php)。
 
 ## 从源码运行
 
-要开发 SKERNEL 本身，请从本仓库的克隆中运行它。SuperKernel 根据工作目录识别应用的根目录，所以请在 SKERNEL 自己的目录中启动它，再用 `-d` 选择要处理的项目：
+要开发 SKERNEL 本身，请从本仓库的克隆中运行它。每次从源码启动时，SKERNEL 都会像 `build` 为项目所做的那样，先在自己的 `vendor/.cache` 中生成自己的构建产物，所以对 SKERNEL 源码的修改在下次启动时生效；同一个克隆的两次启动在其中一次生成期间会互相等待。SKERNEL 可以在任意目录中启动，处理当前目录中的项目，或 `-d` 指定的目录中的项目：
 
 ```bash
 git clone https://github.com/super-kernel/skernel.git

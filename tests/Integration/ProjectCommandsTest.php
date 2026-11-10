@@ -129,6 +129,7 @@ final class ProjectCommandsTest extends TestCase
                 new ExtensionVersions(new DailyCache(new Home())),
             )->directory($this->version, new ExtensionRequirements([
                 'phar',
+                'tokenizer',
             ]));
         } finally {
             putenv('SKERNEL_HOME');

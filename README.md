@@ -51,9 +51,9 @@ The keys mirror the command options: `php` applies to every command, and the `pa
 
 ## Managed PHP
 
-SKERNEL runs and packages a project with a static PHP build of its own rather than with the PHP on your system. A PHP version is given as `major.minor`, such as `8.4`, which selects that branch's latest release on php.net, or as `major.minor.patch`, such as `8.4.27`. Without a version, SKERNEL selects the latest supported PHP release that satisfies the root package's `require.php`.
+SKERNEL builds, runs, and packages a project with a static PHP build of its own rather than with the PHP on your system. A PHP version is given as `major.minor`, such as `8.4`, which selects that branch's latest release on php.net, or as `major.minor.patch`, such as `8.4.27`. Without a version, SKERNEL selects the latest supported PHP release that satisfies the root package's `require.php`.
 
-The build contains the PHP extensions that the project's installation requires through `ext-*` requirements in the root manifest, in its development requirements when they are installed, and in every installed package, together with `phar`. SKERNEL builds it once per platform, version, and extension set with a pinned release of [static-php-cli](https://github.com/crazywhalecc/static-php-cli), producing a static PHP CLI and a micro runtime for standalone binaries, and reuses it afterwards. The micro runtime reports `cli` as `PHP_SAPI`, so a standalone binary starts what requires the CLI, such as a Swoole server. On Linux, both are linked statically against musl and compiled for the architecture's baseline CPU, so they do not depend on the Linux distribution; SKERNEL builds them with a pinned release of [Zig](https://ziglang.org), which it verifies and installs into its home on first use. As the Zig Software Foundation asks of tools, Zig is downloaded from the [community mirrors](https://ziglang.org/download/community-mirrors/) in random order, moving on from a mirror that is too slow, and from ziglang.org only when no mirror serves it.
+The build contains the PHP extensions that the project's installation requires through `ext-*` requirements in the root manifest, in its development requirements when they are installed, and in every installed package, together with `phar`, which packaging needs, and `tokenizer`, which `build` needs. SKERNEL builds it once per platform, version, and extension set with a pinned release of [static-php-cli](https://github.com/crazywhalecc/static-php-cli), producing a static PHP CLI and a micro runtime for standalone binaries, and reuses it afterwards. The micro runtime reports `cli` as `PHP_SAPI`, so a standalone binary starts what requires the CLI, such as a Swoole server. On Linux, both are linked statically against musl and compiled for the architecture's baseline CPU, so they do not depend on the Linux distribution; SKERNEL builds them with a pinned release of [Zig](https://ziglang.org), which it verifies and installs into its home on first use. As the Zig Software Foundation asks of tools, Zig is downloaded from the [community mirrors](https://ziglang.org/download/community-mirrors/) in random order, moving on from a mirror that is too slow, and from ziglang.org only when no mirror serves it.
 
 When the installation limits the version of `ext-swoole` or `ext-redis`, through a requirement or a conflict, SKERNEL builds the latest stable PECL release that it accepts. Any other extension is built at the version static-php-cli selects, and a build that ends up with an extension version the installation does not accept fails instead of being used.
 
@@ -182,12 +182,12 @@ The newest tag is always the [latest release](https://github.com/super-kernel/sk
 
 ## Requirements
 
-- PHP `>=8.4.27 <8.5` with the `openssl`, `pcntl`, `phar`, and `zlib` extensions, only to run SKERNEL from source; Composer checks the required PHP extensions during installation.
+- PHP `>=8.4.27 <8.5` with the `openssl`, `pcntl`, `phar`, `tokenizer`, and `zlib` extensions, only to run SKERNEL from source; Composer checks the required PHP extensions during installation.
 - Network access and static-php-cli's build tools the first time a managed PHP is built, as described under [Managed PHP](#managed-php).
 
 ## Running from source
 
-To work on SKERNEL itself, run it from a clone of this repository. SuperKernel detects an application's root from the working directory, so start SKERNEL from its own directory and select the project to work on with `-d`:
+To work on SKERNEL itself, run it from a clone of this repository. Every start from source first generates SKERNEL's own build artifacts in its `vendor/.cache`, the way `build` does for a project, so a change to SKERNEL's sources takes effect at the next start; two starts from the same clone wait for each other while one of them generates. SKERNEL can be started from any directory and works on the project in the current directory, or in the one given with `-d`:
 
 ```bash
 git clone https://github.com/super-kernel/skernel.git

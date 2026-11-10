@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "ac5db679a5f1d5a3a34b5114386a7316",
+    "content-hash": "129142ce4d1c2e4f09273d87e68ff4b9",
     "packages": [
         {
             "name": "composer/semver",
@@ -347,21 +347,17 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/super-kernel/annotator.git",
-                "reference": "3e4cb8a77f608be15abb0d3cbc393a5eb71dd7fd"
+                "reference": "4e56d3f9f1d9a540bcc9ab3cd9ba17d5188f2e50"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/super-kernel/annotator/zipball/3e4cb8a77f608be15abb0d3cbc393a5eb71dd7fd",
-                "reference": "3e4cb8a77f608be15abb0d3cbc393a5eb71dd7fd",
+                "url": "https://api.github.com/repos/super-kernel/annotator/zipball/4e56d3f9f1d9a540bcc9ab3cd9ba17d5188f2e50",
+                "reference": "4e56d3f9f1d9a540bcc9ab3cd9ba17d5188f2e50",
                 "shasum": ""
             },
             "require": {
-                "ext-reflection": "*",
-                "ext-tokenizer": "*",
                 "php": ">=8.4.27 <8.5",
-                "super-kernel/attribute": "self.version",
-                "super-kernel/contract": "self.version",
-                "super-kernel/scan-isolation": "self.version"
+                "super-kernel/contract": "self.version"
             },
             "require-dev": {
                 "friendsofphp/php-cs-fixer": "^3.95.27",
@@ -378,12 +374,12 @@
             "license": [
                 "MIT"
             ],
-            "description": "Isolated package-aware PHP attribute collection for SuperKernel.",
+            "description": "Restores and queries build-generated, package-aware PHP attribute records for SuperKernel.",
             "support": {
                 "issues": "https://github.com/super-kernel/annotator/issues",
                 "source": "https://github.com/super-kernel/annotator/tree/main"
             },
-            "time": "2026-11-10T08:50:41+00:00"
+            "time": "2026-11-10T08:54:44+00:00"
         },
         {
             "name": "super-kernel/attribute",
@@ -790,12 +786,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/super-kernel/logger.git",
-                "reference": "9aef5092280c2038efdcc48e3ebb4a8e8320a39e"
+                "reference": "fc2e986d2b00c15dbc631fc4bcc25419a79fce4a"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/super-kernel/logger/zipball/9aef5092280c2038efdcc48e3ebb4a8e8320a39e",
-                "reference": "9aef5092280c2038efdcc48e3ebb4a8e8320a39e",
+                "url": "https://api.github.com/repos/super-kernel/logger/zipball/fc2e986d2b00c15dbc631fc4bcc25419a79fce4a",
+                "reference": "fc2e986d2b00c15dbc631fc4bcc25419a79fce4a",
                 "shasum": ""
             },
             "require": {
@@ -825,7 +821,7 @@
                 "issues": "https://github.com/super-kernel/logger/issues",
                 "source": "https://github.com/super-kernel/logger/tree/main"
             },
-            "time": "2026-11-10T05:08:35+00:00"
+            "time": "2026-11-10T08:55:04+00:00"
         },
         {
             "name": "super-kernel/metadata",
@@ -909,49 +905,6 @@
                 "source": "https://github.com/super-kernel/reflector/tree/main"
             },
             "time": "2026-11-10T05:09:31+00:00"
-        },
-        {
-            "name": "super-kernel/scan-isolation",
-            "version": "dev-main",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/super-kernel/scan-isolation.git",
-                "reference": "e6b4fe003019aaa5436c8582f5a5742973ab5205"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/super-kernel/scan-isolation/zipball/e6b4fe003019aaa5436c8582f5a5742973ab5205",
-                "reference": "e6b4fe003019aaa5436c8582f5a5742973ab5205",
-                "shasum": ""
-            },
-            "require": {
-                "php": ">=8.4.27 <8.5",
-                "super-kernel/attribute": "self.version"
-            },
-            "require-dev": {
-                "friendsofphp/php-cs-fixer": "^3.95.27",
-                "phpunit/phpunit": "^13.4.5"
-            },
-            "suggest": {
-                "ext-pcntl": "Enables preferred direct-fork anonymous Closure execution on supported platforms."
-            },
-            "default-branch": true,
-            "type": "library",
-            "autoload": {
-                "psr-4": {
-                    "SuperKernel\\ScanIsolation\\": "src/"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "description": "Anonymous scan callback isolation for SuperKernel.",
-            "support": {
-                "issues": "https://github.com/super-kernel/scan-isolation/issues",
-                "source": "https://github.com/super-kernel/scan-isolation/tree/main"
-            },
-            "time": "2026-11-10T05:09:44+00:00"
         },
         {
             "name": "symfony/console",
@@ -5374,6 +5327,7 @@
         "ext-openssl": "*",
         "ext-pcntl": "*",
         "ext-phar": "*",
+        "ext-tokenizer": "*",
         "ext-zlib": "*"
     },
     "platform-dev": {},
