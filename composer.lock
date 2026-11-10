@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "860bb3b65b744971a20e49dcff2b6ad4",
+    "content-hash": "ac5db679a5f1d5a3a34b5114386a7316",
     "packages": [
         {
             "name": "composer/semver",
@@ -347,12 +347,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/super-kernel/annotator.git",
-                "reference": "251eb837f3d5dec8102219671e7e9f253debf7e5"
+                "reference": "3e4cb8a77f608be15abb0d3cbc393a5eb71dd7fd"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/super-kernel/annotator/zipball/251eb837f3d5dec8102219671e7e9f253debf7e5",
-                "reference": "251eb837f3d5dec8102219671e7e9f253debf7e5",
+                "url": "https://api.github.com/repos/super-kernel/annotator/zipball/3e4cb8a77f608be15abb0d3cbc393a5eb71dd7fd",
+                "reference": "3e4cb8a77f608be15abb0d3cbc393a5eb71dd7fd",
                 "shasum": ""
             },
             "require": {
@@ -383,7 +383,7 @@
                 "issues": "https://github.com/super-kernel/annotator/issues",
                 "source": "https://github.com/super-kernel/annotator/tree/main"
             },
-            "time": "2026-11-10T05:05:16+00:00"
+            "time": "2026-11-10T08:50:41+00:00"
         },
         {
             "name": "super-kernel/attribute",
@@ -471,49 +471,6 @@
                 "source": "https://github.com/super-kernel/command/tree/main"
             },
             "time": "2026-11-10T05:05:58+00:00"
-        },
-        {
-            "name": "super-kernel/composer",
-            "version": "dev-main",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/super-kernel/composer.git",
-                "reference": "2fe0935351ec07aa937e34774e402adc332a65e7"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/super-kernel/composer/zipball/2fe0935351ec07aa937e34774e402adc332a65e7",
-                "reference": "2fe0935351ec07aa937e34774e402adc332a65e7",
-                "shasum": ""
-            },
-            "require": {
-                "php": ">=8.4.27 <8.5",
-                "super-kernel/attribute": "self.version",
-                "super-kernel/contract": "self.version",
-                "super-kernel/scan-isolation": "self.version",
-                "super-kernel/tokenizer": "self.version"
-            },
-            "require-dev": {
-                "friendsofphp/php-cs-fixer": "^3.95.27",
-                "phpunit/phpunit": "^13.4.5"
-            },
-            "default-branch": true,
-            "type": "library",
-            "autoload": {
-                "psr-4": {
-                    "SuperKernel\\Composer\\": "src/"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "description": "Composer package metadata and cached class graphs for SuperKernel.",
-            "support": {
-                "issues": "https://github.com/super-kernel/composer/issues",
-                "source": "https://github.com/super-kernel/composer/tree/main"
-            },
-            "time": "2026-11-10T05:06:12+00:00"
         },
         {
             "name": "super-kernel/context",
@@ -610,33 +567,29 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/super-kernel/di.git",
-                "reference": "e3d6fe168899e05db418240a20d450b6d8e4032b"
+                "reference": "ed1a880310977dc5b6de748d304cba6e7ed734b8"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/super-kernel/di/zipball/e3d6fe168899e05db418240a20d450b6d8e4032b",
-                "reference": "e3d6fe168899e05db418240a20d450b6d8e4032b",
+                "url": "https://api.github.com/repos/super-kernel/di/zipball/ed1a880310977dc5b6de748d304cba6e7ed734b8",
+                "reference": "ed1a880310977dc5b6de748d304cba6e7ed734b8",
                 "shasum": ""
             },
             "require": {
                 "php": ">=8.4.27 <8.5",
                 "psr/container": "^2.0.2",
-                "psr/log": "^3.0.2",
                 "super-kernel/annotator": "self.version",
                 "super-kernel/attribute": "self.version",
-                "super-kernel/composer": "self.version",
                 "super-kernel/contract": "self.version",
-                "super-kernel/reflector": "self.version",
-                "super-kernel/scan-isolation": "self.version",
-                "super-kernel/tokenizer": "self.version"
+                "super-kernel/metadata": "self.version",
+                "super-kernel/reflector": "self.version"
             },
             "provide": {
                 "psr/container-implementation": "2.0"
             },
             "require-dev": {
                 "friendsofphp/php-cs-fixer": "^3.95.27",
-                "phpunit/phpunit": "^13.4.5",
-                "super-kernel/logger": "self.version"
+                "phpunit/phpunit": "^13.4.5"
             },
             "default-branch": true,
             "type": "library",
@@ -654,7 +607,7 @@
                 "issues": "https://github.com/super-kernel/di/issues",
                 "source": "https://github.com/super-kernel/di/tree/main"
             },
-            "time": "2026-11-10T05:06:38+00:00"
+            "time": "2026-11-10T08:51:03+00:00"
         },
         {
             "name": "super-kernel/event",
@@ -875,6 +828,47 @@
             "time": "2026-11-10T05:08:35+00:00"
         },
         {
+            "name": "super-kernel/metadata",
+            "version": "dev-main",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/super-kernel/metadata.git",
+                "reference": "9d8dda4b7a9c230493adc837cef8ed91fd9acdc9"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/super-kernel/metadata/zipball/9d8dda4b7a9c230493adc837cef8ed91fd9acdc9",
+                "reference": "9d8dda4b7a9c230493adc837cef8ed91fd9acdc9",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=8.4.27 <8.5",
+                "super-kernel/attribute": "self.version",
+                "super-kernel/contract": "self.version"
+            },
+            "require-dev": {
+                "friendsofphp/php-cs-fixer": "^3.95.27",
+                "phpunit/phpunit": "^13.4.5"
+            },
+            "default-branch": true,
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "SuperKernel\\Metadata\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "description": "Read-only restoration of build-generated package metadata for SuperKernel.",
+            "support": {
+                "issues": "https://github.com/super-kernel/metadata/issues",
+                "source": "https://github.com/super-kernel/metadata/tree/main"
+            },
+            "time": "2026-11-10T08:41:07+00:00"
+        },
+        {
             "name": "super-kernel/reflector",
             "version": "dev-main",
             "source": {
@@ -958,47 +952,6 @@
                 "source": "https://github.com/super-kernel/scan-isolation/tree/main"
             },
             "time": "2026-11-10T05:09:44+00:00"
-        },
-        {
-            "name": "super-kernel/tokenizer",
-            "version": "dev-main",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/super-kernel/tokenizer.git",
-                "reference": "b8f80aa5f72a71abaf697baf036d79c35a580c9a"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/super-kernel/tokenizer/zipball/b8f80aa5f72a71abaf697baf036d79c35a580c9a",
-                "reference": "b8f80aa5f72a71abaf697baf036d79c35a580c9a",
-                "shasum": ""
-            },
-            "require": {
-                "ext-tokenizer": "*",
-                "php": ">=8.4.27 <8.5",
-                "super-kernel/attribute": "self.version"
-            },
-            "require-dev": {
-                "friendsofphp/php-cs-fixer": "^3.95.27",
-                "phpunit/phpunit": "^13.4.5"
-            },
-            "default-branch": true,
-            "type": "library",
-            "autoload": {
-                "psr-4": {
-                    "SuperKernel\\Tokenizer\\": "src/"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "description": "PHP class-like declaration tokenizer for SuperKernel.",
-            "support": {
-                "issues": "https://github.com/super-kernel/tokenizer/issues",
-                "source": "https://github.com/super-kernel/tokenizer/tree/main"
-            },
-            "time": "2026-11-10T05:10:42+00:00"
         },
         {
             "name": "symfony/console",
@@ -5401,6 +5354,7 @@
     "aliases": [],
     "minimum-stability": "dev",
     "stability-flags": {
+        "super-kernel/annotator": 20,
         "super-kernel/attribute": 20,
         "super-kernel/command": 20,
         "super-kernel/context": 20,
@@ -5410,7 +5364,8 @@
         "super-kernel/event-dispatcher": 20,
         "super-kernel/exception-dispatcher": 20,
         "super-kernel/framework": 20,
-        "super-kernel/logger": 20
+        "super-kernel/logger": 20,
+        "super-kernel/metadata": 20
     },
     "prefer-stable": true,
     "prefer-lowest": false,
