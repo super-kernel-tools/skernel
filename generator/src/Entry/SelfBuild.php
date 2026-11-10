@@ -21,15 +21,23 @@ use const STDERR;
 final class SelfBuild
 {
     /**
-     * Skipped classes stay silent, because SKERNEL's own dependencies are not the developer's code; a failure ends the
-     * process with status 1.
+     * Regenerates on every start, because the sources may have changed since the last one. Skipped classes stay
+     * silent, because SKERNEL's own dependencies are not the developer's code; a failure ends the process with
+     * status 1.
      *
      * @param string $root SKERNEL's project directory
+     *
+     * @return BuildLock Held until the caller has restored the artifacts, so that another start cannot invalidate them
+     *                   in between
      */
-    public static function run(string $root): void
+    public static function run(string $root): BuildLock
     {
         try {
-            Generator::generate($root, VendorDirectory::resolve($root), null);
+            $vendor = VendorDirectory::resolve($root);
+            $lock = new BuildLock($vendor);
+            Generator::generate($root, $vendor, null);
+
+            return $lock;
         } catch (Throwable $exception) {
             fwrite(STDERR, sprintf("SKERNEL cannot generate its own build artifacts: %s\n", $exception->getMessage()));
 
