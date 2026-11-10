@@ -17,7 +17,7 @@ use function var_export;
 final class ProjectReaderTest extends GeneratorTestCase
 {
     /** @throws JsonException When a fixture cannot be encoded */
-    public function testProductionInstallationSkipsAbsentDevelopmentPackagesAndKeepsRootDevelopmentClasses(): void
+    public function testProductionInstallationSkipsDevelopmentPackagesAndRootDevelopmentClasses(): void
     {
         $this->fixture(false, false);
         $records = $this->read();
@@ -27,8 +27,7 @@ final class ProjectReaderTest extends GeneratorTestCase
             'fixture/production',
         ], $this->names($records));
         self::assertSame([
-            'ApplicationTests\\Example' => $this->directory . '/tests/Example.php',
-            'Application\\Example'      => $this->directory . '/src/Example.php',
+            'Application\\Example' => $this->directory . '/src/Example.php',
         ], $records[0]->classMap->classes);
         self::assertSame([
             'Production\\Example' => $this->directory . '/vendor/fixture/production/src/Example.php',
@@ -36,15 +35,20 @@ final class ProjectReaderTest extends GeneratorTestCase
     }
 
     /** @throws JsonException When a fixture cannot be encoded */
-    public function testDevelopmentInstallationIncludesInstalledDevelopmentPackages(): void
+    public function testDevelopmentInstallationIncludesDevelopmentPackagesAndRootDevelopmentClasses(): void
     {
         $this->fixture(true, true);
+        $records = $this->read();
 
         self::assertSame([
             'fixture/project',
             'fixture/development',
             'fixture/production',
-        ], $this->names($this->read()));
+        ], $this->names($records));
+        self::assertSame([
+            'ApplicationTests\\Example' => $this->directory . '/tests/Example.php',
+            'Application\\Example'      => $this->directory . '/src/Example.php',
+        ], $records[0]->classMap->classes);
     }
 
     /** @throws JsonException When a fixture cannot be encoded */

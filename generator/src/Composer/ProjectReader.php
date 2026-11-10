@@ -27,8 +27,9 @@ use const SORT_STRING;
 final class ProjectReader
 {
     /**
-     * Lists the root first, then the installed lock packages sorted by name. The root's class map includes its
-     * autoload-dev classes whether or not development dependencies are installed.
+     * Lists the root first, then the installed lock packages sorted by name. The root's autoload-dev classes belong to
+     * its class map only when Composer installed development dependencies, because only then does Composer's own
+     * autoloader load them.
      *
      * @param string $projectDirectory Canonical project directory
      * @param string $vendorDirectory  Canonical vendor directory
@@ -87,9 +88,11 @@ final class ProjectReader
                 $projectDirectory,
                 ClassMapScanner::scan(
                     $projectDirectory,
-                    AutoloadRuleParser::parse($root->autoload, $projectDirectory)->merge(
-                        AutoloadRuleParser::parse($root->autoloadDev, $projectDirectory),
-                    ),
+                    $installed->development
+                        ? AutoloadRuleParser::parse($root->autoload, $projectDirectory)->merge(
+                            AutoloadRuleParser::parse($root->autoloadDev, $projectDirectory),
+                        )
+                        : AutoloadRuleParser::parse($root->autoload, $projectDirectory),
                 ),
             ),
         ];
