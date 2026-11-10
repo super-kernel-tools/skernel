@@ -1,0 +1,55 @@
+{
+    "name": "super-kernel/skernel",
+    "description": "Toolkit for the SuperKernel framework.",
+    "type": "project",
+    "license": "MIT",
+    "require": {
+        "php": ">=8.4.27 <8.5",
+        "ext-openssl": "*",
+        "ext-pcntl": "*",
+        "ext-phar": "*",
+        "ext-zlib": "*",
+        "composer/semver": "^3.6.0",
+        "psr/log": "^3.0.2",
+        "super-kernel/attribute": "dev-main",
+        "super-kernel/command": "dev-main",
+        "super-kernel/context": "dev-main",
+        "super-kernel/contract": "dev-main",
+        "super-kernel/di": "dev-main",
+        "super-kernel/event": "dev-main",
+        "super-kernel/event-dispatcher": "dev-main",
+        "super-kernel/exception-dispatcher": "dev-main",
+        "super-kernel/framework": "dev-main",
+        "super-kernel/logger": "dev-main",
+        "symfony/console": "^8.1.9",
+        "symfony/process": "^8.1.10"
+    },
+    "require-dev": {
+        "friendsofphp/php-cs-fixer": "^3.95.27",
+        "phpunit/phpunit": "^13.4.5"
+    },
+    "autoload": {
+        "psr-4": {
+            "Src\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Src\\Tests\\": "tests/"
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "config": {
+        "classmap-authoritative": true,
+        "optimize-autoloader": true,
+        "process-timeout": 0,
+        "sort-packages": true,
+        "vendor-dir": "vendor"
+    },
+    "scripts": {
+        "format": "@php vendor/bin/php-cs-fixer fix --show-progress=bar --no-ansi",
+        "format:check": "@php vendor/bin/php-cs-fixer check --show-progress=bar --no-ansi --diff",
+        "test": "@php vendor/bin/phpunit"
+    }
+}

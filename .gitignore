@@ -1,0 +1,35 @@
+# IDE
+.idea/
+.vscode/
+
+# Dependencies
+/vendor/
+/node_modules/
+
+# Composer
+/composer.lock
+composer.phar
+auth.json
+
+# Environment
+.env
+.env.*
+
+# Runtime and logs
+*.log
+*.pid
+runtime/
+var/
+storage/logs/
+
+# Build and cache
+build/
+target/
+dist/
+coverage/
+.phpstan/
+.psalm/
+
+# OS files
+.DS_Store
+Thumbs.db

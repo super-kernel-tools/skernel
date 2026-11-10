@@ -1,0 +1,54 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://raw.githubusercontent.com/super-kernel/skernel/main/skernel.schema.json",
+    "title": "SKERNEL configuration",
+    "description": "Settings for the options left off SKERNEL's command line, read from skernel.json or skernel.json.dist in the project root.",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+        "$schema": {
+            "description": "The schema that describes this file.",
+            "type": "string",
+            "minLength": 1
+        },
+        "php": {
+            "description": "The managed PHP version: major.minor for that branch's latest release, or an exact major.minor.patch.",
+            "type": "string",
+            "pattern": "^[1-9][0-9]*\\.[0-9]+(\\.[0-9]+)?$",
+            "examples": [
+                "8.4",
+                "8.4.27"
+            ]
+        },
+        "package": {
+            "description": "Settings of the package command.",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "runtime": {
+                    "description": "A micro.sfx that replaces the managed micro runtime, relative to the project root.",
+                    "type": "string",
+                    "minLength": 1
+                },
+                "output": {
+                    "description": "The package path, relative to the project root; by default target/<name>.",
+                    "type": "string",
+                    "minLength": 1
+                },
+                "composer": {
+                    "description": "The Composer binary that installs the packaged copy, a path or a name looked up in PATH, by default a working Composer 2 or else SKERNEL's own.",
+                    "type": "string",
+                    "minLength": 1
+                },
+                "dev": {
+                    "description": "Whether the development dependencies are installed into the package.",
+                    "type": "boolean"
+                },
+                "phar": {
+                    "description": "Whether packaging stops at the PHAR instead of a standalone binary.",
+                    "type": "boolean"
+                }
+            }
+        }
+    }
+}

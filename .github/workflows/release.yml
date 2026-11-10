@@ -1,0 +1,118 @@
+name: Release
+
+# A tag that is a SemVer 2.0 version publishes a release. A pull request that changes the release process builds and
+# checks every binary without publishing anything.
+on:
+  push:
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+*'
+  pull_request:
+    paths:
+      - .github/scripts/**
+      - .github/workflows/release.yml
+
+permissions:
+  contents: read
+
+jobs:
+  version:
+    name: Check the tag
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Require a SemVer 2.0 version
+        id: version
+        env:
+          TAG: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
+        run: |
+          semver='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-((0|[1-9][0-9]*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*)(\.(0|[1-9][0-9]*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*))*))?(\+[0-9a-zA-Z-]+(\.[0-9a-zA-Z-]+)*)?$'
+
+          if [ -n "$TAG" ] && ! printf '%s' "$TAG" | grep -Eq "$semver"; then
+            echo "::error::The tag $TAG is not a SemVer 2.0 version."
+            exit 1
+          fi
+
+          echo "version=$TAG" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build ${{ matrix.platform }}
+    needs: version
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux-x86_64
+            runner: ubuntu-24.04
+          - platform: linux-aarch64
+            runner: ubuntu-24.04-arm
+          - platform: macos-aarch64
+            runner: macos-15
+          - platform: macos-x86_64
+            runner: macos-15-intel
+    env:
+      # static-php-cli looks up its sources through the GitHub API, whose anonymous limit runners share.
+      GITHUB_TOKEN: ${{ github.token }}
+      VERSION: ${{ needs.version.outputs.version }}
+      BINARY: dist/skernel-${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: iconv, openssl, pcntl, phar, tokenizer, zlib
+          tools: composer:v2
+
+      - name: Install the build tools on Linux
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y autoconf automake autopoint bison cmake flex gettext libtool re2c
+
+      - name: Install the build tools on macOS
+        if: runner.os == 'macOS'
+        run: |
+          brew install autoconf automake bison cmake gettext libtool re2c
+          echo "$(brew --prefix bison)/bin" >> "$GITHUB_PATH"
+
+      - name: Set the version of the binary
+        if: env.VERSION != ''
+        run: composer config version "$VERSION"
+
+      - name: Install the dependencies
+        run: composer install --no-dev --no-interaction --no-progress
+
+      - name: Package SKERNEL
+        run: php bin/bootstrap.php package --output="$BINARY"
+
+      - name: Check the binary
+        run: .github/scripts/check-binary.sh "$PWD/$BINARY"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: skernel-${{ matrix.platform }}
+          path: ${{ env.BINARY }}
+          if-no-files-found: error
+
+  release:
+    name: Publish the release
+    needs:
+      - version
+      - build
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          path: dist
+          merge-multiple: true
+
+      # SKERNEL keeps no older version line, so the newest tag is always the latest release, which self-update installs.
+      - name: Publish the binaries
+        run: gh release create "$VERSION" dist/* --verify-tag --title "$VERSION" --generate-notes --latest
