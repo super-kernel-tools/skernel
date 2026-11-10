@@ -13,6 +13,8 @@ use SKERNEL\Generator\ClassMap\SourceParser;
 use SKERNEL\Generator\Diagnostic\Diagnostic;
 use SKERNEL\Generator\Model\PackageDeclaration;
 use SKERNEL\Generator\Model\PackageRecord;
+use SKERNEL\Generator\Publish\AttributeMetadataFactory;
+use SuperKernel\Annotator\Model\AttributeMetadata;
 
 use function array_keys;
 use function array_map;
@@ -104,7 +106,7 @@ final class AttributeScannerTest extends GeneratorTestCase
             $this->record('acme/second', null, [
                 'Other',
             ]),
-        ], [], new ScanProgress());
+        ], [], new ScanProgress(), $this->identity(...));
 
         self::assertSame('acme/first', $first->package);
         self::assertSame('first-reference', $first->reference);
@@ -172,7 +174,7 @@ final class AttributeScannerTest extends GeneratorTestCase
             ]),
         ], [
             $this->className('Fatal') => 'Cannot redeclare a method',
-        ], $progress);
+        ], $progress, $this->identity(...));
 
         self::assertSame([
             $this->className('Kept'),
@@ -193,6 +195,53 @@ final class AttributeScannerTest extends GeneratorTestCase
         self::assertNull($progress->package);
     }
 
+    public function testSkipsAClassWithAnAttributeThatCannotBeSerializedWithoutPartialMetadata(): void
+    {
+        $this->declare('Plain', '#[\Attribute] final class Plain {}');
+        $this->declare('Holder', <<<'PHP'
+            #[\Attribute]
+            final class Holder
+            {
+                public \Closure $factory;
+
+                public function __construct()
+                {
+                    $this->factory = static fn(): int => 1;
+                }
+            }
+            PHP);
+        $this->declare('Holding', <<<'PHP'
+            #[Plain]
+            final class Holding
+            {
+                #[Holder]
+                public function run(): void
+                {
+                }
+            }
+            PHP);
+        $kept = $this->declare('Kept', '#[Plain] final class Kept {}');
+        [$package] = AttributeScanner::scan([
+            $this->record('acme/first', null, [
+                'Holding',
+                'Kept',
+            ]),
+        ], [], new ScanProgress(), AttributeMetadataFactory::create(...));
+
+        self::assertSame([
+            $kept,
+        ], array_keys($package->classes));
+        self::assertInstanceOf(AttributeMetadata::class, $package->classes[$kept][0]);
+        self::assertSame([], $package->methods);
+        self::assertSame([
+            '1|acme/first|Holding|InvalidArgumentException',
+        ], $this->diagnostics($package->diagnostics));
+        self::assertSame(
+            'Attribute ' . $this->className('Holder') . ' must support trusted serialization and restoration.',
+            $package->diagnostics[0]->message,
+        );
+    }
+
     public function testDoesNotLoadAClassWhoseSourceContainsNoAttributes(): void
     {
         $this->declare('Unmarked', 'final class Unmarked extends Absent {}');
@@ -200,7 +249,7 @@ final class AttributeScannerTest extends GeneratorTestCase
             $this->record('acme/first', null, [
                 'Unmarked',
             ]),
-        ], [], new ScanProgress());
+        ], [], new ScanProgress(), $this->identity(...));
 
         self::assertSame([], $package->classes);
         self::assertSame([], $package->diagnostics);
@@ -255,6 +304,11 @@ final class AttributeScannerTest extends GeneratorTestCase
             $this->directory,
             new ClassMap($map, $attributeFiles),
         );
+    }
+
+    private function identity(CollectedAttribute $attribute): CollectedAttribute
+    {
+        return $attribute;
     }
 
     /**

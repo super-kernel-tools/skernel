@@ -11,6 +11,7 @@ use SKERNEL\Generator\Exception\GeneratorException;
 use SKERNEL\Generator\Exception\ProtocolMismatchException;
 use SKERNEL\Generator\Path\FilesystemPath;
 use SKERNEL\Generator\Publish\ArtifactPublisher;
+use SKERNEL\Generator\Publish\AttributeMetadataFactory;
 use SKERNEL\Generator\Publish\PackageManagerFactory;
 use SKERNEL\Generator\Publish\Protocol;
 use Throwable;
@@ -55,7 +56,12 @@ final class Generator
         Protocol::assertCompatible();
         $records = ProjectReader::read($project, $vendor);
         $manager = PackageManagerFactory::create($records);
-        $attributes = AttributeScanner::scan($records, $fatalClasses, $progress ?? new ScanProgress());
+        $attributes = AttributeScanner::scan(
+            $records,
+            $fatalClasses,
+            $progress ?? new ScanProgress(),
+            AttributeMetadataFactory::create(...),
+        );
         ArtifactPublisher::publish(
             $manager,
             $attributes,

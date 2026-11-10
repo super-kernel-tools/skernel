@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace SKERNEL\Generator\Attribute;
 
+use Closure;
 use ReflectionClass;
 use SKERNEL\Generator\Diagnostic\Diagnostic;
 use SKERNEL\Generator\Model\PackageRecord;
 use Throwable;
+
+use function array_map;
 
 /**
  * Collects the attributes of every package's classes, isolating each class's failure.
@@ -17,15 +20,19 @@ use Throwable;
 final class AttributeScanner
 {
     /**
-     * Loads only classes whose files contain an attribute. A class that throws while loading, reflecting, or
-     * instantiating an attribute is skipped with a diagnostic, as is a class that ended an earlier run.
+     * Loads only classes whose files contain an attribute. A class that throws while loading, reflecting,
+     * instantiating an attribute, or converting one is skipped with a diagnostic and contributes nothing, as is a
+     * class that ended an earlier run.
      *
-     * @param list<PackageRecord>         $records
-     * @param array<class-string, string> $fatalClasses Classes that ended an earlier run, with the fatal error message
+     * @param list<PackageRecord>                 $records
+     * @param array<class-string, string>         $fatalClasses Classes that ended an earlier run, with the fatal
+     *                                                          error message
+     * @param Closure(CollectedAttribute): object $convert      Builds the published model of one attribute, such as
+     *                                                          the annotator's, and throws when it cannot
      *
      * @return list<PackageAttributes> One per record, in record order
      */
-    public static function scan(array $records, array $fatalClasses, ScanProgress $progress): array
+    public static function scan(array $records, array $fatalClasses, ScanProgress $progress, Closure $convert): array
     {
         $sequence = 0;
         $packages = [];
@@ -61,6 +68,20 @@ final class AttributeScanner
 
                 try {
                     $attributes = ClassAttributeCollector::collect(new ReflectionClass($class));
+                    $converted = [
+                        'classes'    => array_map($convert, $attributes->class),
+                        'methods'    => [],
+                        'properties' => [],
+                    ];
+
+                    foreach ([
+                        'methods'    => $attributes->methods,
+                        'properties' => $attributes->properties,
+                    ] as $kind => $members) {
+                        foreach ($members as $member => $list) {
+                            $converted[$kind][$member] = array_map($convert, $list);
+                        }
+                    }
                 } catch (Throwable $exception) {
                     $diagnostics[] = new Diagnostic(
                         ++$sequence,
@@ -76,16 +97,10 @@ final class AttributeScanner
                     $progress->class = null;
                 }
 
-                if ([] !== $attributes->class) {
-                    $collected['classes'][$class] = $attributes->class;
-                }
-
-                if ([] !== $attributes->methods) {
-                    $collected['methods'][$class] = $attributes->methods;
-                }
-
-                if ([] !== $attributes->properties) {
-                    $collected['properties'][$class] = $attributes->properties;
+                foreach ($converted as $kind => $value) {
+                    if ([] !== $value) {
+                        $collected[$kind][$class] = $value;
+                    }
                 }
             }
 
