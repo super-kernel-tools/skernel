@@ -160,7 +160,8 @@ final class BootstrapTest extends TestCase
     public function testBuildRejectsADirectoryWithoutAProject(): void
     {
         $missing = dirname(__DIR__) . '/missing';
-        $output = $this->bootstrap('build -d ' . escapeshellarg($missing), $status, '2>&1 >/dev/null');
+        // A wide terminal keeps Console from breaking the long path inside a word.
+        $output = $this->bootstrap('build -d ' . escapeshellarg($missing), $status, '2>&1 >/dev/null', 'COLUMNS=1000');
         $message = (string) preg_replace('/\s+/', ' ', implode(' ', $output));
 
         self::assertSame(1, $status);

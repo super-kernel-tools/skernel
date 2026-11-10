@@ -30,6 +30,7 @@
     },
     "autoload": {
         "psr-4": {
+            "SKERNEL\\Generator\\": "generator/src/",
             "Src\\": "src/"
         }
     },
