@@ -1212,6 +1212,7 @@ $finder = Finder::create()
     ->name('*.php')
     ->in([
         __DIR__ . '/bin',
+        __DIR__ . '/generator',
         __DIR__ . '/src',
         __DIR__ . '/tests',
     ])

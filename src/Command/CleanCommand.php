@@ -16,9 +16,9 @@ use function is_dir;
 use function sprintf;
 
 /**
- * Removes what `build` and `package` write by default: the `target/` directory and the scan caches.
+ * Removes what `build` and `package` write by default: the `target/` directory and the build artifacts.
  */
-#[AttributeCommand(name: 'clean', description: "Remove the project's build output and scan caches")]
+#[AttributeCommand(name: 'clean', description: "Remove the project's build output and build artifacts")]
 final class CleanCommand extends Command
 {
     public function __construct(private readonly ProjectLocator $projectLocator)

@@ -9,6 +9,7 @@ use PHPUnit\Framework\Attributes\RequiresOperatingSystemFamily;
 use PHPUnit\Framework\TestCase;
 use RecursiveIteratorIterator;
 use Src\Filesystem\Directory;
+use Src\Tests\Support\BuildApiStandIn;
 use Src\Toolchain\DailyCache;
 use Src\Toolchain\ExtensionRequirements;
 use Src\Toolchain\ExtensionVersions;
@@ -57,6 +58,8 @@ final class PackageCommandTest extends TestCase
 
         namespace SuperKernel\Context;
 
+        require __DIR__ . '/build-api.php';
+
         final class ApplicationContext
         {
             public static function getContainer(): object
@@ -104,7 +107,7 @@ final class PackageCommandTest extends TestCase
                 'php' => '>=8.4',
             ],
         ]));
-        $this->write($this->project . '/composer.lock', '{}');
+        $this->write($this->project . '/composer.lock', '{"packages": [], "packages-dev": []}');
         $this->write($this->project . '/src/App.php', '<?php');
         $this->write($this->project . '/.env', 'SECRET=1');
         $this->write($this->project . '/.git/HEAD', 'ref: refs/heads/main');
@@ -162,8 +165,11 @@ final class PackageCommandTest extends TestCase
             'composer.json',
             'composer.lock',
             'src/App.php',
+            'vendor/.cache/build.json',
             'vendor/autoload.php',
+            'vendor/build-api.php',
             'vendor/composer/installed.json',
+            'vendor/composer/installed.php',
         ], $this->entries($this->project . '/target/demo.phar'));
 
         exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($this->project . '/target/demo.phar'), $run, $status);
@@ -275,6 +281,7 @@ final class PackageCommandTest extends TestCase
     private function vendor(string $directory): void
     {
         $this->write($directory . '/vendor/autoload.php', self::AUTOLOAD);
+        BuildApiStandIn::write($directory, $directory . '/vendor');
         $this->write($directory . '/vendor/composer/installed.json', (string) json_encode([
             'packages' => [
                 [

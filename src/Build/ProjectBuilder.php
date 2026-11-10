@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Src\Build;
 
+use SKERNEL\Generator\Diagnostic\DiagnosticFormatter;
 use Src\Process\PhpScript;
 use Src\Project\Project;
 use Symfony\Component\Console\Exception\RuntimeException;
@@ -13,11 +14,12 @@ use function sprintf;
 use function var_export;
 
 /**
- * Writes a project's build artifacts in a separate PHP process without creating or running the application.
+ * Writes a project's build artifacts in separate PHP processes without creating or running the application.
  *
- * The process bootstraps the project's container, which writes its scan snapshots, then publishes
- * `SuperKernel\Event\ApplicationBuild` so that components write the artifacts restore-only hosts load. Projects
- * without that event or a PSR-14 dispatcher have no listener for it, so the event is skipped.
+ * The first process generates the package and annotation records. The second bootstraps the project's container from
+ * them, without any class the first loaded, and publishes `SuperKernel\Event\ApplicationBuild` so that components
+ * write the artifacts they prepare at build time, such as AOP proxies. Projects without that event or a PSR-14
+ * dispatcher have no listener for it, so the event is skipped.
  */
 final readonly class ProjectBuilder
 {
@@ -40,19 +42,36 @@ final readonly class ProjectBuilder
 
         PHP;
 
-    /**
-     * Runs the build in the project directory with the given PHP binary, a path or a name looked up in PATH, and
-     * forwards everything the process writes.
-     *
-     * @return int The exit status of the build process
-     *
-     * @throws RuntimeException When the PHP binary is not found or cannot be started, or the temporary entry script
-     *                          cannot be written
-     */
-    public function build(Project $project, string $phpBinary, OutputInterface $output): int
+    public function __construct(private MetadataGenerator $metadataGenerator)
     {
-        $entry = sprintf(self::ENTRY, var_export($project->vendorDirectory . '/autoload.php', true));
+    }
 
-        return PhpScript::run($entry, $phpBinary, [], $project->directory, $output);
+    /**
+     * Runs the build in the project directory with the given PHP binary, a path or a name looked up in PATH, forwards
+     * everything the processes write, and then lists the classes whose attributes could not be collected.
+     *
+     * @param string $skernelVersion The running SKERNEL's version, `UNKNOWN` or empty when it has none
+     *
+     * @throws RuntimeException When the PHP binary is not found or cannot be started, the project's build protocol
+     *                          differs, or either process fails
+     */
+    public function build(Project $project, string $phpBinary, string $skernelVersion, OutputInterface $output): void
+    {
+        $diagnostics = $this->metadataGenerator->generate(
+            $project,
+            $phpBinary,
+            '' === $skernelVersion || 'UNKNOWN' === $skernelVersion ? 'dev' : $skernelVersion,
+            $output,
+        );
+        $entry = sprintf(self::ENTRY, var_export($project->vendorDirectory . '/autoload.php', true));
+        $status = PhpScript::run($entry, $phpBinary, [], $project->directory, $output);
+
+        if (0 !== $status) {
+            throw new RuntimeException(sprintf('The project build failed with exit status %d.', $status));
+        }
+
+        foreach (DiagnosticFormatter::format($diagnostics) as $line) {
+            $output->writeln($line, OutputInterface::OUTPUT_RAW);
+        }
     }
 }

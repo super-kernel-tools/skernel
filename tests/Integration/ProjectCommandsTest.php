@@ -7,6 +7,7 @@ namespace Src\Tests\Integration;
 use PHPUnit\Framework\Attributes\RequiresOperatingSystemFamily;
 use PHPUnit\Framework\TestCase;
 use Src\Filesystem\Directory;
+use Src\Tests\Support\BuildApiStandIn;
 use Src\Toolchain\DailyCache;
 use Src\Toolchain\ExtensionRequirements;
 use Src\Toolchain\ExtensionVersions;
@@ -58,6 +59,8 @@ final class ProjectCommandsTest extends TestCase
 
         namespace SuperKernel\Context;
 
+        require __DIR__ . '/build-api.php';
+
         final class ApplicationContext
         {
             public static function getContainer(): object
@@ -104,6 +107,7 @@ final class ProjectCommandsTest extends TestCase
             'name' => 'acme/demo',
         ]));
         $this->write($this->project . '/vendor/autoload.php', self::AUTOLOAD);
+        BuildApiStandIn::write($this->project, $this->project . '/vendor');
         $this->write($this->project . '/vendor/composer/installed.json', (string) json_encode([
             'packages' => [
                 [
@@ -140,7 +144,7 @@ final class ProjectCommandsTest extends TestCase
         Directory::remove($this->directory);
     }
 
-    public function testCleanRemovesTheBuildOutputAndTheScanCaches(): void
+    public function testCleanRemovesTheBuildOutputAndTheBuildArtifacts(): void
     {
         $this->write($this->project . '/target/demo', 'package');
         $this->write($this->project . '/vendor/.cache/classes/demo.ser', 'cache');

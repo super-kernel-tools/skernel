@@ -63,6 +63,7 @@ SKERNEL 下载和构建的所有内容都放在它的主目录 `~/.skernel` 中�
 ~/.skernel/
 ├── cache/                       php.net and PECL release answers and Zig mirrors, refreshed daily
 ├── downloads/                   source archives, shared by every build
+├── generator/<digest>/          the generator a standalone SKERNEL extracts for builds
 ├── pkgroot/<platform>/          Zig and the other packages static-php-cli installs
 ├── runtimes/<platform>/php-<version>/<extension-hash>/
 │   ├── php                      the static PHP CLI
@@ -100,9 +101,9 @@ Project created in /path/to/my-app.
 run [-d|--working-dir=<dir>] [--php=<version>] [--watch] [--] [<arguments>...]
 ```
 
-`run` 用受管 PHP 从源码运行项目，在项目目录中以单独的进程执行。`<arguments>` 传给应用，所以 `run swoole:start` 会启动它的 Swoole 服务；要传给应用的选项放在 `--` 之后。不加 `--watch` 时，SKERNEL 以应用的退出码退出。
+`run` 先像 `build` 一样构建项目，再用受管 PHP 从源码运行项目，在项目目录中以单独的进程执行。`<arguments>` 传给应用，所以 `run swoole:start` 会启动它的 Swoole 服务；要传给应用的选项放在 `--` 之后。不加 `--watch` 时，SKERNEL 以应用的退出码退出。
 
-加上 `--watch` 后，项目文件变化时 SKERNEL 会重启应用。它每秒检查一次 PHP 文件、`.env` 和 `.env.*` 文件以及 `composer.lock` 的变化，并跳过 vendor 目录、`target/` 和名称以点开头的目录，所以运行中的应用写入日志和缓存不会触发重启。重启时先向应用发送 SIGTERM，10 秒后发送 SIGKILL。应用自行退出后，下一次变化会再次启动它。
+加上 `--watch` 后，项目文件变化时 SKERNEL 会重启应用。它每秒检查一次 PHP 文件、`.env` 和 `.env.*` 文件以及 `composer.lock` 的变化，并跳过 vendor 目录、`target/` 和名称以点开头的目录，所以运行中的应用写入日志和缓存不会触发重启。重启时先向应用发送 SIGTERM，10 秒后发送 SIGKILL，并在重启前重新构建项目。应用自行退出或构建失败后，下一次变化会再次启动它。
 
 SIGINT 和 SIGTERM 会先停止应用，SKERNEL 再退出。出现 `build` 的任一种失败或应用无法启动时，会在 STDERR 上打印一条简短的提示，退出码为 1。
 
@@ -112,7 +113,7 @@ SIGINT 和 SIGTERM 会先停止应用，SKERNEL 再退出。出现 `build` 的�
 clean [-d|--working-dir=<dir>]
 ```
 
-`clean` 删除项目的 `target/` 目录和 `<vendor>/.cache` 扫描缓存，并说明删除了什么。用 `--output` 或 `package.output` 设置写到其他位置的包不会被删除。项目的依赖不必已安装。
+`clean` 删除项目的 `target/` 目录和 `<vendor>/.cache` 构建产物，并说明删除了什么。用 `--output` 或 `package.output` 设置写到其他位置的包不会被删除。项目的依赖不必已安装。
 
 ### self-update
 
@@ -130,15 +131,25 @@ self-update
 build [-d|--working-dir=<dir>] [--php=<version>]
 ```
 
-`build` 对项目做一次完整的源码扫描，把只恢复快照运行和 Phar 运行要加载的构建产物写到项目的 `<vendor>/.cache` 目录，vendor 目录遵循项目的 `config.vendor-dir`：包括扫描快照，以及构建发布 `SuperKernel\Event\ApplicationBuild` 时项目各组件写出的产物，例如 `super-kernel/aop` 预先准备好的代理。项目必须已经安装好依赖，其中包括 `super-kernel/context` 和 `super-kernel/di`；扫描覆盖的包以这次安装为准。
+`build` 生成应用启动时加载的构建产物，写到项目的 `<vendor>/.cache` 目录，vendor 目录遵循项目的 `config.vendor-dir`：包括带类映射的包记录、从这些类收集到的注解、构建戳，以及构建发布 `SuperKernel\Event\ApplicationBuild` 时项目各组件写出的产物，例如 `super-kernel/aop` 预先准备好的代理。SuperKernel 应用在缺少这些产物，或产物来自较旧的 `composer.lock` 时启动，会停止并给出提到 `skernel build` 的提示。项目必须已经安装好依赖，其中包括 `super-kernel/metadata`、`super-kernel/context` 和 `super-kernel/di`；构建覆盖的包以这次安装为准。
 
-构建在受管 PHP CLI 的一个单独进程中运行。该进程加载项目自己的 autoloader，引导出项目的容器；项目同时具备该事件和事件分发器时，再通过项目的 PSR-14 事件分发器发布 `ApplicationBuild`。整个过程不解析也不运行应用。该进程写出的所有内容（包括项目的扫描诊断）都转到 STDERR；成功时 STDOUT 只有一行：
+构建在受管 PHP CLI 的两个单独进程中运行，所以 SKERNEL 自己从不加载项目的代码。第一个进程加载项目自己的 autoloader，确认已安装的 `super-kernel/metadata` 使用本 SKERNEL 生成的构建协议，为每个已安装的包建立类映射，收集声明了注解的类的注解，再通过项目自己的 `super-kernel/metadata` 和 `super-kernel/annotator` 发布这些记录。无法加载的类，或注解无法创建的类，会被跳过，即使加载它时进程因致命错误而结束也是如此。第二个进程从这些记录引导出容器；项目同时具备该事件和事件分发器时，再通过项目的 PSR-14 事件分发器发布 `ApplicationBuild`。整个过程不解析也不运行应用。
+
+这些进程写出的所有内容都转到 STDERR，之后列出被跳过的类，每行一个，按包和类排序：
+
+```text
+SKERNEL skipped 2 classes whose attributes could not be collected:
+  acme/app App\Broken\Listener: Error: Class "App\Missing" not found
+  acme/app App\Broken\Proxy: fatal error: Declaration of App\Broken\Proxy::run() must be compatible with ...
+```
+
+成功时 STDOUT 只有一行：
 
 ```text
 Build artifacts written to /path/to/my-app/vendor/.cache.
 ```
 
-项目或依赖不存在、配置文件或 `--php` 的值无效、无法提供受管 PHP，或构建失败时，会在 STDERR 上打印一条简短的提示，退出码为 1。
+项目的 `super-kernel/metadata` 使用其他构建协议时，构建会在写入任何内容之前停止，并说明该升级哪一方：SKERNEL（例如用 `skernel self-update`），或项目的 SuperKernel 包。没有 `super-kernel/metadata` 的项目早于由 SKERNEL 生成产物的做法，需要 SuperKernel 1.0.0-alpha.2 或更高版本。出现这种情况，或项目或依赖不存在、配置文件或 `--php` 的值无效、无法提供受管 PHP、构建失败时，会在 STDERR 上打印一条简短的提示，退出码为 1。
 
 ### package
 

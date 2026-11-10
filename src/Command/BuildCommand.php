@@ -16,9 +16,9 @@ use Symfony\Component\Console\Output\OutputInterface;
 use function sprintf;
 
 /**
- * Scans the project with its managed PHP and writes the build artifacts that restore-only and Phar execution load.
+ * Generates the project's build artifacts with its managed PHP; the application loads them at start.
  */
-#[AttributeCommand(name: 'build', description: 'Scan the project and write its build artifacts')]
+#[AttributeCommand(name: 'build', description: 'Generate the build artifacts that the project loads at start')]
 final class BuildCommand extends Command
 {
     public function __construct(
@@ -41,18 +41,18 @@ final class BuildCommand extends Command
 
     /**
      * @throws RuntimeException When the project or its configuration is invalid, its managed PHP cannot be provided,
-     *                          or the build cannot start or fails
+     *                          the project's build protocol differs, or the build cannot start or fails
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $errorOutput = $output instanceof ConsoleOutputInterface ? $output->getErrorOutput() : $output;
         [$project, $runtime] = $this->projectRuntime->resolve($input, $errorOutput);
-        $status = $this->projectBuilder->build($project, $runtime->php, $errorOutput);
-
-        if (0 !== $status) {
-            throw new RuntimeException(sprintf('The project build failed with exit status %d.', $status));
-        }
-
+        $this->projectBuilder->build(
+            $project,
+            $runtime->php,
+            (string) $this->getApplication()?->getVersion(),
+            $errorOutput,
+        );
         $output->writeln(
             sprintf('Build artifacts written to %s/.cache.', $project->vendorDirectory),
             OutputInterface::OUTPUT_RAW,

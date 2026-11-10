@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Src\Run;
 
+use Src\Build\ProjectBuilder;
 use Src\Process\Executable;
 use Src\Project\Project;
 use Symfony\Component\Console\Exception\RuntimeException;
@@ -28,9 +29,10 @@ use const SIGTERM;
 /**
  * Runs a project from source in a separate PHP process, and with watching restarts it whenever its files change.
  *
- * The process runs the standard application entry sequence in the project directory. A watched application that exits
- * on its own is started again by the next change, so that a fix restarts one that crashed. SIGINT and SIGTERM stop the
- * application first, so that it does not outlive SKERNEL.
+ * Every start builds the project first, so the application loads artifacts that match its sources. The process runs
+ * the standard application entry sequence in the project directory. A watched application that exits on its own, or
+ * whose build fails, is started again by the next change, so that a fix restarts one that crashed. SIGINT and SIGTERM
+ * stop the application first, so that it does not outlive SKERNEL.
  */
 final readonly class ProjectRunner
 {
@@ -56,20 +58,26 @@ final readonly class ProjectRunner
     /** Seconds that a stopped application has to exit before it is killed */
     private const int STOP_TIMEOUT = 10;
 
+    public function __construct(private ProjectBuilder $projectBuilder)
+    {
+    }
+
     /**
-     * @param string       $phpBinary A path or a name looked up in PATH
-     * @param list<string> $arguments The arguments of the application
+     * @param string       $phpBinary      A path or a name looked up in PATH
+     * @param list<string> $arguments      The arguments of the application
+     * @param string       $skernelVersion The running SKERNEL's version, `UNKNOWN` or empty when it has none
      *
      * @return int The exit status of the application
      *
-     * @throws RuntimeException When the PHP binary is not found or cannot be started, or the temporary entry script
-     *                          cannot be written
+     * @throws RuntimeException When the PHP binary is not found or cannot be started, the first build fails, or the
+     *                          temporary entry script cannot be written
      */
     public function run(
         Project         $project,
         string          $phpBinary,
         array           $arguments,
         bool            $watch,
+        string          $skernelVersion,
         OutputInterface $output,
         OutputInterface $errorOutput,
     ): int
@@ -90,7 +98,19 @@ final readonly class ProjectRunner
                 throw new RuntimeException(sprintf('Unable to write the temporary PHP script %s.', $script));
             }
 
-            $start = static function () use ($command, $script, $arguments, $project, $output, $errorOutput): Process {
+            $builder = $this->projectBuilder;
+            $start = static function () use (
+                $builder,
+                $phpBinary,
+                $skernelVersion,
+                $command,
+                $script,
+                $arguments,
+                $project,
+                $output,
+                $errorOutput,
+            ): Process {
+                $builder->build($project, $phpBinary, $skernelVersion, $errorOutput);
                 $process = new Process([
                     ...$command,
                     $script,
@@ -140,19 +160,19 @@ final readonly class ProjectRunner
             $reported = false;
 
             while (true) {
-                $running = $process->isRunning();
+                $running = null !== $process && $process->isRunning();
 
                 if ($stopping) {
-                    $process->stop(self::STOP_TIMEOUT);
+                    $process?->stop(self::STOP_TIMEOUT);
 
-                    return $process->getExitCode() ?? 1;
+                    return $process?->getExitCode() ?? 1;
                 }
 
                 if (!$running && !$watch) {
-                    return $process->getExitCode() ?? 1;
+                    return $process?->getExitCode() ?? 1;
                 }
 
-                if (!$running && !$reported) {
+                if (null !== $process && !$running && !$reported) {
                     $errorOutput->writeln(sprintf(
                         'The application exited with status %d; waiting for a change.',
                         $process->getExitCode() ?? 1,
@@ -167,9 +187,18 @@ final readonly class ProjectRunner
                     if ($current !== $snapshot) {
                         $snapshot = $current;
                         $errorOutput->writeln('The project changed; restarting.', OutputInterface::OUTPUT_RAW);
-                        $process->stop(self::STOP_TIMEOUT);
-                        $process = $start();
-                        $reported = false;
+                        $process?->stop(self::STOP_TIMEOUT);
+
+                        try {
+                            $process = $start();
+                            $reported = false;
+                        } catch (RuntimeException $exception) {
+                            $process = null;
+                            $errorOutput->writeln(
+                                $exception->getMessage() . ' Waiting for a change.',
+                                OutputInterface::OUTPUT_RAW,
+                            );
+                        }
                     }
                 }
 
