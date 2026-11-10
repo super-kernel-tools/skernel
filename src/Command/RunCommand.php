@@ -15,9 +15,10 @@ use Symfony\Component\Console\Output\ConsoleOutputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
 /**
- * Runs the project from source with its managed PHP, and with --watch restarts it whenever its files change.
+ * Builds and runs the project from source with its managed PHP, and with --watch rebuilds and restarts it whenever its
+ * files change.
  */
-#[AttributeCommand(name: 'run', description: 'Run the project from source, and restart it on changes with --watch')]
+#[AttributeCommand(name: 'run', description: 'Build and run the project, and restart it on changes with --watch')]
 final class RunCommand extends Command
 {
     public function __construct(
@@ -48,7 +49,7 @@ final class RunCommand extends Command
      * @return int The exit status of the application
      *
      * @throws RuntimeException When the project or its configuration is invalid, its managed PHP cannot be provided,
-     *                          or the application cannot start
+     *                          or the application cannot be built or started
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
@@ -60,6 +61,7 @@ final class RunCommand extends Command
             $runtime->php,
             $input->getArgument('arguments'),
             $input->getOption('watch'),
+            (string) $this->getApplication()?->getVersion(),
             $output,
             $errorOutput,
         );

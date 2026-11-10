@@ -63,6 +63,7 @@ Everything SKERNEL downloads and builds lives in its home directory, `~/.skernel
 ~/.skernel/
 ├── cache/                       php.net and PECL release answers and Zig mirrors, refreshed daily
 ├── downloads/                   source archives, shared by every build
+├── generator/<digest>/          the generator a standalone SKERNEL extracts for builds
 ├── pkgroot/<platform>/          Zig and the other packages static-php-cli installs
 ├── runtimes/<platform>/php-<version>/<extension-hash>/
 │   ├── php                      the static PHP CLI
@@ -100,9 +101,9 @@ A directory that exists and is not empty, a Composer that is not found or fails,
 run [-d|--working-dir=<dir>] [--php=<version>] [--watch] [--] [<arguments>...]
 ```
 
-`run` runs the project from source with its managed PHP, in a separate process in the project directory. `<arguments>` go to the application, so `run swoole:start` starts its Swoole server; put options for the application after `--`. Without `--watch`, SKERNEL exits with the application's exit status.
+`run` builds the project as `build` does and then runs it from source with its managed PHP, in a separate process in the project directory. `<arguments>` go to the application, so `run swoole:start` starts its Swoole server; put options for the application after `--`. Without `--watch`, SKERNEL exits with the application's exit status.
 
-With `--watch`, SKERNEL restarts the application whenever a project file changes. It checks once a second for changes to PHP files, `.env` and `.env.*` files, and `composer.lock`, leaving out the vendor directory, `target/`, and directories whose name starts with a dot, so the logs and caches a running application writes do not restart it. It sends the application SIGTERM and then SIGKILL after 10 seconds. An application that exits on its own is started again by the next change.
+With `--watch`, SKERNEL restarts the application whenever a project file changes. It checks once a second for changes to PHP files, `.env` and `.env.*` files, and `composer.lock`, leaving out the vendor directory, `target/`, and directories whose name starts with a dot, so the logs and caches a running application writes do not restart it. It sends the application SIGTERM and then SIGKILL after 10 seconds, and builds the project again before it restarts it. An application that exits on its own, or whose build fails, is started again by the next change.
 
 SIGINT and SIGTERM stop the application before SKERNEL exits. The failures of `build`, and an application that cannot start, print a short message on STDERR and exit with status 1.
 
@@ -112,7 +113,7 @@ SIGINT and SIGTERM stop the application before SKERNEL exits. The failures of `b
 clean [-d|--working-dir=<dir>]
 ```
 
-`clean` removes the project's `target/` directory and its `<vendor>/.cache` scan caches, and says what it removed. A package written elsewhere with `--output` or the `package.output` setting stays. The project's dependencies do not have to be installed.
+`clean` removes the project's `target/` directory and its `<vendor>/.cache` build artifacts, and says what it removed. A package written elsewhere with `--output` or the `package.output` setting stays. The project's dependencies do not have to be installed.
 
 ### self-update
 
@@ -130,15 +131,25 @@ Running from source, a latest release that cannot be read or has no verified bin
 build [-d|--working-dir=<dir>] [--php=<version>]
 ```
 
-`build` runs a full source scan of the project and writes the build artifacts that restore-only and Phar execution load to the project's `<vendor>/.cache` directory, honouring its `config.vendor-dir`: the scan snapshots, and whatever the project's components write when the build publishes `SuperKernel\Event\ApplicationBuild`, such as the prepared proxies of `super-kernel/aop`. The project must have its dependencies installed, including `super-kernel/context` and `super-kernel/di`, and the scan covers the packages of that installation.
+`build` generates the build artifacts that the application loads at start and writes them to the project's `<vendor>/.cache` directory, honouring its `config.vendor-dir`: the package records with their class maps, the attributes collected from those classes, a build stamp, and whatever the project's components write when the build publishes `SuperKernel\Event\ApplicationBuild`, such as the prepared proxies of `super-kernel/aop`. A SuperKernel application started without them, or with artifacts from an older `composer.lock`, stops with a message that names `skernel build`. The project must have its dependencies installed, including `super-kernel/metadata`, `super-kernel/context`, and `super-kernel/di`, and the build covers the packages of that installation.
 
-The build runs in a separate process of the managed PHP CLI. That process loads the project's own autoloader, bootstraps its container, and then publishes `ApplicationBuild` through the project's PSR-14 event dispatcher, when the project has both the event and a dispatcher, without resolving or running the application. Everything the process writes, including the project's scan diagnostics, goes to STDERR, and on success STDOUT carries one line:
+The build runs in two separate processes of the managed PHP CLI, so SKERNEL never loads the project's code itself. The first loads the project's own autoloader, checks that the installed `super-kernel/metadata` uses the build protocol this SKERNEL generates, maps the classes of every installed package, collects the attributes of the classes that declare any, and publishes the records through the project's own `super-kernel/metadata` and `super-kernel/annotator`. A class that cannot be loaded or whose attribute cannot be created is skipped, even when loading it ends the process with a fatal error. The second process bootstraps the container from the records and then publishes `ApplicationBuild` through the project's PSR-14 event dispatcher, when the project has both the event and a dispatcher, without resolving or running the application.
+
+Everything the processes write goes to STDERR, followed by the skipped classes, one per line, sorted by package and class:
+
+```text
+SKERNEL skipped 2 classes whose attributes could not be collected:
+  acme/app App\Broken\Listener: Error: Class "App\Missing" not found
+  acme/app App\Broken\Proxy: fatal error: Declaration of App\Broken\Proxy::run() must be compatible with ...
+```
+
+On success STDOUT carries one line:
 
 ```text
 Build artifacts written to /path/to/my-app/vendor/.cache.
 ```
 
-A missing project or dependencies, an invalid configuration file or `--php` value, a managed PHP that cannot be provided, or a failed build prints a short message on STDERR and exits with status 1.
+When the project's `super-kernel/metadata` uses another build protocol, the build stops before it writes anything and says which side to upgrade: SKERNEL, for example with `skernel self-update`, or the project's SuperKernel packages. A project without `super-kernel/metadata` predates SKERNEL-generated artifacts and needs SuperKernel 1.0.0-alpha.2 or later. That, a missing project or dependencies, an invalid configuration file or `--php` value, a managed PHP that cannot be provided, or a failed build prints a short message on STDERR and exits with status 1.
 
 ### package
 

@@ -153,12 +153,12 @@ final class PackageCommand extends Command
                 $php ?? $settings->php,
                 $errorOutput,
             );
-            $status = $this->projectBuilder->build($staged, $managed->php, $errorOutput);
-
-            if (0 !== $status) {
-                throw new RuntimeException(sprintf('The project build failed with exit status %d.', $status));
-            }
-
+            $this->projectBuilder->build(
+                $staged,
+                $managed->php,
+                (string) $this->getApplication()?->getVersion(),
+                $errorOutput,
+            );
             $archive = $staging . '/' . $name . '.phar';
             $status = $this->pharBuilder->build($staged, $archive, $phar, $managed->php, $errorOutput);
 
