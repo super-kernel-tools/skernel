@@ -67,6 +67,23 @@ final class BootstrapTest extends TestCase
         self::assertSame($expected, end($lines));
     }
 
+    /** @throws JsonException When the root manifest or the build stamp is not valid JSON */
+    public function testStartingFromSourceGeneratesTheBuildArtifactsOfSKERNELItself(): void
+    {
+        $root = dirname(__DIR__);
+        $manifest = json_decode((string) file_get_contents($root . '/composer.json'), true, 512, JSON_THROW_ON_ERROR);
+        $stamp = $root . '/vendor/.cache/build.json';
+        @unlink($stamp);
+
+        $output = $this->bootstrap('--version', $status);
+
+        self::assertSame(0, $status, implode("\n", $output));
+        self::assertFileExists($stamp);
+        $build = json_decode((string) file_get_contents($stamp), true, 512, JSON_THROW_ON_ERROR);
+        self::assertSame(1, $build['protocol']);
+        self::assertSame($manifest['version'] ?? 'dev', $build['skernel']);
+    }
+
     public function testOverviewOpensWithTheSKERNELLogo(): void
     {
         $output = $this->bootstrap('--no-ansi', $status);
@@ -85,7 +102,7 @@ final class BootstrapTest extends TestCase
         self::assertSame('SKERNEL', $listing['application']['name']);
     }
 
-    public function testScanDiagnosticsOfSKERNELItselfAreNotWritten(): void
+    public function testSkippedClassesOfSKERNELItselfAreNotWritten(): void
     {
         $output = $this->bootstrap('--version', $status, '2>&1 >/dev/null');
 
