@@ -75,9 +75,12 @@ jobs:
           brew install autoconf automake bison cmake gettext libtool re2c
           echo "$(brew --prefix bison)/bin" >> "$GITHUB_PATH"
 
+      # The version is part of the lock's content hash, so the lock takes the new hash; its packages stay as committed.
       - name: Set the version of the binary
         if: env.VERSION != ''
-        run: composer config version "$VERSION"
+        run: |
+          composer config version "$VERSION"
+          composer update --lock --no-install --no-interaction --no-progress
 
       - name: Install the dependencies
         run: composer install --no-dev --no-interaction --no-progress
