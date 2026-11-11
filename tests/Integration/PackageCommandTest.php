@@ -34,6 +34,7 @@ use function sort;
 use function str_starts_with;
 use function strlen;
 use function substr;
+use function substr_count;
 use function symlink;
 use function sys_get_temp_dir;
 use function tempnam;
@@ -85,6 +86,15 @@ final class PackageCommandTest extends TestCase
 
         PHP;
 
+    private const array PACKAGES = [
+        [
+            'name' => 'super-kernel/context',
+        ],
+        [
+            'name' => 'super-kernel/di',
+        ],
+    ];
+
     private string $directory;
 
     private string $project;
@@ -112,11 +122,21 @@ final class PackageCommandTest extends TestCase
         $this->write($this->project . '/.env', 'SECRET=1');
         $this->write($this->project . '/.git/HEAD', 'ref: refs/heads/main');
         $this->write($this->project . '/target/stale', 'stale');
+        $this->write($this->directory . '/installed-dev.json', (string) json_encode([
+            'packages' => self::PACKAGES,
+            'dev'      => true,
+        ]));
         $this->write($this->directory . '/bin/composer', implode("\n", [
             '#!/bin/sh',
             'if [ "$1" = --version ]; then echo "Composer version 2.10.3"; exit 0; fi',
+            'if [ "$1" = dump-autoload ]; then',
+            '    echo "$PWD $*" >> ' . escapeshellarg($this->directory . '/dump-arguments'),
+            '    exit 0',
+            'fi',
             'printf "%s" "$*" > ' . escapeshellarg($this->directory . '/composer-arguments'),
             'cp -R ' . escapeshellarg($this->directory . '/template/vendor') . ' vendor',
+            'case "$*" in *--no-dev*) ;; *) cp ' . escapeshellarg($this->directory . '/installed-dev.json')
+            . ' vendor/composer/installed.json ;; esac',
             '',
         ]));
         self::assertTrue(chmod($this->directory . '/bin/composer', 0o755));
@@ -158,6 +178,7 @@ final class PackageCommandTest extends TestCase
             'install --no-interaction --no-progress --ignore-platform-reqs --no-dev',
             file_get_contents($this->directory . '/composer-arguments'),
         );
+        $this->assertDumpedInTheStagedCopy('--no-dev');
         self::assertStringStartsWith(
             "#!/usr/bin/env php\n",
             (string) file_get_contents($this->project . '/target/demo.phar'),
@@ -193,6 +214,7 @@ final class PackageCommandTest extends TestCase
             'install --no-interaction --no-progress --ignore-platform-reqs',
             file_get_contents($this->directory . '/composer-arguments'),
         );
+        $this->assertDumpedInTheStagedCopy('--dev');
         $binary = (string) file_get_contents($this->project . '/target/demo');
         self::assertStringStartsWith('MICRO<?php', $binary);
     }
@@ -274,6 +296,16 @@ final class PackageCommandTest extends TestCase
         return $output;
     }
 
+    /** Asserts that the build regenerated the autoloader once, in the staged copy rather than the project */
+    private function assertDumpedInTheStagedCopy(string $mode): void
+    {
+        $line = (string) file_get_contents($this->directory . '/dump-arguments');
+
+        self::assertStringEndsWith('/project dump-autoload --no-interaction ' . $mode . "\n", $line);
+        self::assertStringStartsNotWith($this->project . ' ', $line);
+        self::assertSame(1, substr_count($line, "\n"));
+    }
+
     private function composer(): string
     {
         return escapeshellarg($this->directory . '/bin/composer');
@@ -284,15 +316,8 @@ final class PackageCommandTest extends TestCase
         $this->write($directory . '/vendor/autoload.php', self::AUTOLOAD);
         BuildApiStandIn::write($directory, $directory . '/vendor');
         $this->write($directory . '/vendor/composer/installed.json', (string) json_encode([
-            'packages' => [
-                [
-                    'name' => 'super-kernel/context',
-                ],
-                [
-                    'name' => 'super-kernel/di',
-                ],
-            ],
-            'dev' => false,
+            'packages' => self::PACKAGES,
+            'dev'      => false,
         ]));
     }
 

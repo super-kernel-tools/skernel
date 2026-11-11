@@ -16,7 +16,8 @@ use Symfony\Component\Console\Output\OutputInterface;
 use function sprintf;
 
 /**
- * Generates the project's build artifacts with its managed PHP; the application loads them at start.
+ * Regenerates the project's Composer autoloader and generates its build artifacts with its managed PHP; the
+ * application loads them at start.
  */
 #[AttributeCommand(name: 'build', description: 'Generate the build artifacts that the project loads at start')]
 final class BuildCommand extends Command
@@ -40,16 +41,17 @@ final class BuildCommand extends Command
     }
 
     /**
-     * @throws RuntimeException When the project or its configuration is invalid, its managed PHP cannot be provided,
-     *                          the project's build protocol differs, or the build cannot start or fails
+     * @throws RuntimeException When the project or its configuration is invalid, its managed PHP or Composer cannot be
+     *                          provided, the project's build protocol differs, or the build cannot start or fails
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $errorOutput = $output instanceof ConsoleOutputInterface ? $output->getErrorOutput() : $output;
-        [$project, $runtime] = $this->projectRuntime->resolve($input, $errorOutput);
+        [$project, $runtime, $composer] = $this->projectRuntime->resolve($input, $errorOutput);
         $this->projectBuilder->build(
             $project,
             $runtime->php,
+            $composer,
             (string) $this->getApplication()?->getVersion(),
             $errorOutput,
         );

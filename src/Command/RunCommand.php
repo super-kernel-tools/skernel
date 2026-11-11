@@ -48,17 +48,18 @@ final class RunCommand extends Command
     /**
      * @return int The exit status of the application
      *
-     * @throws RuntimeException When the project or its configuration is invalid, its managed PHP cannot be provided,
-     *                          or the application cannot be built or started
+     * @throws RuntimeException When the project or its configuration is invalid, its managed PHP or Composer cannot be
+     *                          provided, or the application cannot be built or started
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $errorOutput = $output instanceof ConsoleOutputInterface ? $output->getErrorOutput() : $output;
-        [$project, $runtime] = $this->projectRuntime->resolve($input, $errorOutput);
+        [$project, $runtime, $composer] = $this->projectRuntime->resolve($input, $errorOutput);
 
         return $this->projectRunner->run(
             $project,
             $runtime->php,
+            $composer,
             $input->getArgument('arguments'),
             $input->getOption('watch'),
             (string) $this->getApplication()?->getVersion(),

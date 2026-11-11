@@ -130,12 +130,13 @@ final class PackageCommand extends Command
                 $project->directory . '/target',
                 $target,
             ]);
+            $composer = $this->composerLocator->command(
+                $input->getOption('composer') ?? $configuration->composer,
+                $errorOutput,
+            );
             $status = $this->dependencyInstaller->install(
                 $staging . '/project',
-                $this->composerLocator->command(
-                    $input->getOption('composer') ?? $configuration->composer,
-                    $errorOutput,
-                ),
+                $composer,
                 $input->getOption('dev') || true === $configuration->dev,
                 $errorOutput,
             );
@@ -156,6 +157,7 @@ final class PackageCommand extends Command
             $this->projectBuilder->build(
                 $staged,
                 $managed->php,
+                $composer,
                 (string) $this->getApplication()?->getVersion(),
                 $errorOutput,
             );

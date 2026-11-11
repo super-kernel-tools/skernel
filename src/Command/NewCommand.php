@@ -26,8 +26,9 @@ use function sprintf;
 /**
  * Creates a project from the SuperKernel skeleton with Composer.
  *
- * Platform requirements are not checked against the PHP that runs Composer, because the project runs on its managed
- * PHP, which `build`, `run`, and `package` build later.
+ * A released SKERNEL creates the skeleton at exactly its own version; one without a version, such as SKERNEL run from
+ * source, creates it from the development line. Platform requirements are not checked against the PHP that runs
+ * Composer, because the project runs on its managed PHP, which `build`, `run`, and `package` build later.
  */
 #[AttributeCommand(name: 'new', description: 'Create a project from the SuperKernel skeleton')]
 final class NewCommand extends Command
@@ -51,7 +52,8 @@ final class NewCommand extends Command
     }
 
     /**
-     * @throws RuntimeException When the directory is in use, Composer cannot be provided, or it fails
+     * @throws RuntimeException When the directory is in use, Composer cannot be provided, or it fails, for a released
+     *                          SKERNEL also when the skeleton of its version does not exist
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
@@ -67,19 +69,29 @@ final class NewCommand extends Command
         }
 
         $errorOutput = $output instanceof ConsoleOutputInterface ? $output->getErrorOutput() : $output;
+        $version = (string) $this->getApplication()?->getVersion();
+        $released = '' !== $version && 'UNKNOWN' !== $version;
         $status = ProcessRunner::run([
             ...$this->composerLocator->command($input->getOption('composer'), $errorOutput),
             'create-project',
             self::SKELETON,
             $directory,
-            '--stability=dev',
+            $released ? $version : '--stability=dev',
             '--no-interaction',
             '--no-progress',
             '--ignore-platform-reqs',
         ], $current, $errorOutput, 'Composer');
 
         if (0 !== $status) {
-            throw new RuntimeException(sprintf('Creating the project failed with exit status %d.', $status));
+            $message = sprintf('Creating the project failed with exit status %d.', $status);
+
+            throw new RuntimeException($released ? sprintf(
+                '%s This SKERNEL creates %s %s; if Composer could not find that version, run skernel self-update'
+                . ' and create the project again.',
+                $message,
+                self::SKELETON,
+                $version,
+            ) : $message);
         }
 
         $output->writeln(sprintf('Project created in %s.', $directory), OutputInterface::OUTPUT_RAW);

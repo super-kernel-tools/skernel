@@ -87,13 +87,15 @@ new <directory> [--composer=<binary>]
 
 `new` 用 Composer 的 `create-project` 命令，从 [`super-kernel/skeleton`](https://github.com/super-kernel/skeleton) 包在 `<directory>` 创建项目；相对路径以全局选项 `-d`/`--working-dir` 或当前目录为基准。不会按运行 Composer 的 PHP 检查平台要求，因为项目运行在它的受管 PHP 上。
 
+已发布的 SKERNEL 会创建与自身版本完全相同的骨架，例如 SKERNEL 1.0.0-alpha.3 创建 `super-kernel/skeleton` 1.0.0-alpha.3；从源码运行的 SKERNEL 没有版本，会从开发线创建。这个版本只用于选择模板：模板不带 `composer.lock`，所以 Composer 在创建项目时解析它的依赖要求。
+
 指定 `--composer` 时使用该程序。否则 SKERNEL 使用找到的第一个可用的 Composer 2：先找 `PATH` 中的 `composer` 或 `composer.phar`，再找 `~/.local/bin/composer`、`~/bin/composer`、`~/.config/composer/vendor/bin/composer` 和 `~/.composer/vendor/bin/composer`。都没有时，它把固定版本的 Composer 下载到自己的主目录，按 SHA-256 摘要校验，再用受管 PHP 运行；这个 PHP 在首次使用时构建。
 
 ```text
 Project created in /path/to/my-app.
 ```
 
-目录已存在且不为空、找不到 Composer 或 Composer 执行失败、无法提供受管 PHP 时，会在 STDERR 上打印一条简短的提示，退出码为 1。
+目录已存在且不为空、找不到 Composer 或 Composer 执行失败、无法提供受管 PHP 时，会在 STDERR 上打印一条简短的提示，退出码为 1。已发布的 SKERNEL 在 Composer 执行失败时，提示中还会写明它请求的骨架版本，并说明：如果 Composer 找不到该版本，请运行 `skernel self-update` 后重新创建项目。
 
 ### run
 
@@ -103,7 +105,7 @@ run [-d|--working-dir=<dir>] [--php=<version>] [--watch] [--] [<arguments>...]
 
 `run` 先像 `build` 一样构建项目，再用受管 PHP 从源码运行项目，在项目目录中以单独的进程执行。`<arguments>` 传给应用，所以 `run swoole:start` 会启动它的 Swoole 服务；要传给应用的选项放在 `--` 之后。不加 `--watch` 时，SKERNEL 以应用的退出码退出。
 
-加上 `--watch` 后，项目文件变化时 SKERNEL 会重启应用。它每秒检查一次 PHP 文件、`.env` 和 `.env.*` 文件以及 `composer.lock` 的变化，并跳过 vendor 目录、`target/` 和名称以点开头的目录，所以运行中的应用写入日志和缓存不会触发重启。重启时先向应用发送 SIGTERM，10 秒后发送 SIGKILL，并在重启前重新构建项目。应用自行退出或构建失败后，下一次变化会再次启动它。
+加上 `--watch` 后，项目文件变化时 SKERNEL 会重启应用。它每秒检查一次 PHP 文件、`.env` 和 `.env.*` 文件以及 `composer.lock` 的变化，并跳过 vendor 目录、`target/` 和名称以点开头的目录，所以运行中的应用写入日志和缓存不会触发重启。重启时先向应用发送 SIGTERM，10 秒后发送 SIGKILL，并在重启前重新构建项目，包括它的 Composer autoloader。应用自行退出或构建失败后，下一次变化会再次启动它。
 
 SIGINT 和 SIGTERM 会先停止应用，SKERNEL 再退出。出现 `build` 的任一种失败或应用无法启动时，会在 STDERR 上打印一条简短的提示，退出码为 1。
 
@@ -133,9 +135,11 @@ build [-d|--working-dir=<dir>] [--php=<version>]
 
 `build` 生成应用启动时加载的构建产物，写到项目的 `<vendor>/.cache` 目录，vendor 目录遵循项目的 `config.vendor-dir`：包括带类映射的包记录、从这些类收集到的注解、构建戳，以及构建发布 `SuperKernel\Event\ApplicationBuild` 时项目各组件写出的产物，例如 `super-kernel/aop` 预先准备好的代理。SuperKernel 应用在缺少这些产物，或产物来自较旧的 `composer.lock` 时启动，会停止并给出提到 `skernel build` 的提示。项目必须已经安装好依赖，其中包括 `super-kernel/metadata`、`super-kernel/context` 和 `super-kernel/di`；构建覆盖的包以这次安装为准。
 
+`build` 在生成任何内容之前，先用 Composer 的 `dump-autoload` 命令重新生成项目的 Composer autoloader，所以 `composer install` 之后新增的类能被构建和应用找到，不需要自己运行 `composer dump-autoload`。它使用的 Composer 与不指定 `--composer` 时的 [`new`](#new) 相同：找到的第一个可用的 Composer 2，否则是 SKERNEL 自己的。Composer 采用项目自己的 autoloader 设置，例如 `composer.json` 中的 `config.optimize-autoloader` 和 `config.classmap-authoritative`；开发环境的自动加载规则随安装方式而定：用 `--no-dev` 安装的项目不会重新获得这些规则。Composer 在自己的进程中运行，它执行的项目 `pre-autoload-dump` 和 `post-autoload-dump` 脚本也是如此。无法提供 Composer 或 Composer 执行失败时，构建会在生成任何内容之前停止，并保留之前的产物。
+
 构建在受管 PHP CLI 的两个单独进程中运行，所以 SKERNEL 自己从不加载项目的代码。第一个进程加载项目自己的 autoloader，确认已安装的 `super-kernel/metadata` 使用本 SKERNEL 生成的构建协议，为每个已安装的包建立类映射，收集声明了注解的类的注解，再通过项目自己的 `super-kernel/metadata` 和 `super-kernel/annotator` 发布这些记录。无法加载的类，或注解无法创建的类，会被跳过，即使加载它时进程因致命错误而结束也是如此。第二个进程从这些记录引导出容器；项目同时具备该事件和事件分发器时，再通过项目的 PSR-14 事件分发器发布 `ApplicationBuild`。整个过程不解析也不运行应用。
 
-这些进程写出的所有内容都转到 STDERR，之后列出被跳过的类，每行一个，按包和类排序：
+Composer 和这些进程写出的所有内容都转到 STDERR，之后列出被跳过的类，每行一个，按包和类排序：
 
 ```text
 SKERNEL skipped 2 classes whose attributes could not be collected:
@@ -149,7 +153,7 @@ SKERNEL skipped 2 classes whose attributes could not be collected:
 Build artifacts written to /path/to/my-app/vendor/.cache.
 ```
 
-项目的 `super-kernel/metadata` 使用其他构建协议时，构建会在写入任何内容之前停止，并说明该升级哪一方：SKERNEL（例如用 `skernel self-update`），或项目的 SuperKernel 包。没有 `super-kernel/metadata` 的项目早于由 SKERNEL 生成产物的做法，需要 SuperKernel 1.0.0-alpha.2 或更高版本。出现这种情况，或项目或依赖不存在、配置文件或 `--php` 的值无效、无法提供受管 PHP、构建失败时，会在 STDERR 上打印一条简短的提示，退出码为 1。
+项目的 `super-kernel/metadata` 使用其他构建协议时，构建会在写入任何内容之前停止，并说明该升级哪一方：SKERNEL（例如用 `skernel self-update`），或项目的 SuperKernel 包。没有 `super-kernel/metadata` 的项目早于由 SKERNEL 生成产物的做法，需要 SuperKernel 1.0.0-alpha.2 或更高版本。出现这种情况，或项目或依赖不存在、配置文件或 `--php` 的值无效、无法提供受管 PHP 或 Composer、Composer 重新生成 autoloader 失败、构建失败时，会在 STDERR 上打印一条简短的提示，退出码为 1。
 
 ### package
 
@@ -162,7 +166,7 @@ package [-d|--working-dir=<dir>] [--php=<version>] [--phar] [--dev] [--output=<p
 
 1. 复制项目，但不包括 vendor 目录、`.git` 等 VCS 元数据、`target/` 目录，以及根目录下的 `.env` 和 `.env.*` 文件（这些文件通常保存本机密钥）；打包后的应用从进程环境变量读取环境配置。
 2. 按项目的 `composer.lock` 为副本安装依赖，使用的 Composer 与 [`new`](#new) 相同：`--composer` 指定的程序（路径或在 `PATH` 中查找的名称），否则是找到的第一个可用的 Composer 2，再否则是 SKERNEL 自己的。除非指定 `--dev`，否则不安装开发依赖。项目必须有 `composer.lock`，但项目自身不必安装依赖。Composer 不会按运行它的那个 PHP 检查平台要求，因为包的运行平台是受管 PHP。
-3. 用该次安装对应的受管 PHP 对副本运行 `build`。
+3. 用该次安装对应的受管 PHP 和同一个 Composer 对副本运行 `build`。
 4. 把副本归档为 PHAR，它的 stub 加载副本的 autoloader、获取应用容器并运行应用，因此不需要入口脚本。
 5. 把受管 micro 运行时（或 `--runtime` 指定的文件）和 PHAR 依次写入输出路径；指定 `--phar` 时只写入 PHAR。结果文件会被设为可执行。用 `--runtime` 指定的 micro 运行时必须把 `PHP_SAPI` 报告为 `cli`，结果文件才能启动 Swoole 服务；使用 static-php-cli 时，构建时加上 `--with-micro-fake-cli`。
 
@@ -187,7 +191,7 @@ Package written to /path/to/my-app/target/my-app.
 
 ## 从源码运行
 
-要开发 SKERNEL 本身，请从本仓库的克隆中运行它。每次从源码启动时，SKERNEL 都会像 `build` 为项目所做的那样，先在自己的 `vendor/.cache` 中生成自己的构建产物，所以对 SKERNEL 源码的修改在下次启动时生效；同一个克隆的两次启动在其中一次生成期间会互相等待。SKERNEL 可以在任意目录中启动，处理当前目录中的项目，或 `-d` 指定的目录中的项目：
+要开发 SKERNEL 本身，请从本仓库的克隆中运行它。每次从源码启动时，SKERNEL 都会像 `build` 为项目所做的那样（但不使用 Composer），先在自己的 `vendor/.cache` 中生成自己的构建产物，所以对 SKERNEL 源码的修改在下次启动时生效；同一个克隆的两次启动在其中一次生成期间会互相等待。SKERNEL 自己的 autoloader 是权威类映射，所以给 SKERNEL 新增类之后，请运行 `composer dump-autoload`。SKERNEL 可以在任意目录中启动，处理当前目录中的项目，或 `-d` 指定的目录中的项目：
 
 ```bash
 git clone https://github.com/super-kernel/skernel.git

@@ -29,10 +29,10 @@ use const SIGTERM;
 /**
  * Runs a project from source in a separate PHP process, and with watching restarts it whenever its files change.
  *
- * Every start builds the project first, so the application loads artifacts that match its sources. The process runs
- * the standard application entry sequence in the project directory. A watched application that exits on its own, or
- * whose build fails, is started again by the next change, so that a fix restarts one that crashed. SIGINT and SIGTERM
- * stop the application first, so that it does not outlive SKERNEL.
+ * Every start builds the project first, so the application loads an autoloader and artifacts that match its sources.
+ * The process runs the standard application entry sequence in the project directory. A watched application that exits
+ * on its own, or whose build fails, is started again by the next change, so that a fix restarts one that crashed.
+ * SIGINT and SIGTERM stop the application first, so that it does not outlive SKERNEL.
  */
 final readonly class ProjectRunner
 {
@@ -63,9 +63,10 @@ final readonly class ProjectRunner
     }
 
     /**
-     * @param string       $phpBinary      A path or a name looked up in PATH
-     * @param list<string> $arguments      The arguments of the application
-     * @param string       $skernelVersion The running SKERNEL's version, `UNKNOWN` or empty when it has none
+     * @param string                 $phpBinary      A path or a name looked up in PATH
+     * @param non-empty-list<string> $composer       The command that runs Composer
+     * @param list<string>           $arguments      The arguments of the application
+     * @param string                 $skernelVersion The running SKERNEL's version, `UNKNOWN` or empty when it has none
      *
      * @return int The exit status of the application
      *
@@ -75,6 +76,7 @@ final readonly class ProjectRunner
     public function run(
         Project         $project,
         string          $phpBinary,
+        array           $composer,
         array           $arguments,
         bool            $watch,
         string          $skernelVersion,
@@ -102,6 +104,7 @@ final readonly class ProjectRunner
             $start = static function () use (
                 $builder,
                 $phpBinary,
+                $composer,
                 $skernelVersion,
                 $command,
                 $script,
@@ -110,7 +113,7 @@ final readonly class ProjectRunner
                 $output,
                 $errorOutput,
             ): Process {
-                $builder->build($project, $phpBinary, $skernelVersion, $errorOutput);
+                $builder->build($project, $phpBinary, $composer, $skernelVersion, $errorOutput);
                 $process = new Process([
                     ...$command,
                     $script,
