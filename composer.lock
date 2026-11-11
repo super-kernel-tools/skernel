@@ -347,12 +347,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/super-kernel/annotator.git",
-                "reference": "4e56d3f9f1d9a540bcc9ab3cd9ba17d5188f2e50"
+                "reference": "02bf8c73666290334032c340aa9199d1e5af76a8"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/super-kernel/annotator/zipball/4e56d3f9f1d9a540bcc9ab3cd9ba17d5188f2e50",
-                "reference": "4e56d3f9f1d9a540bcc9ab3cd9ba17d5188f2e50",
+                "url": "https://api.github.com/repos/super-kernel/annotator/zipball/02bf8c73666290334032c340aa9199d1e5af76a8",
+                "reference": "02bf8c73666290334032c340aa9199d1e5af76a8",
                 "shasum": ""
             },
             "require": {
@@ -379,7 +379,7 @@
                 "issues": "https://github.com/super-kernel/annotator/issues",
                 "source": "https://github.com/super-kernel/annotator/tree/main"
             },
-            "time": "2026-11-10T08:54:44+00:00"
+            "time": "2026-11-11T02:19:15+00:00"
         },
         {
             "name": "super-kernel/attribute",
@@ -387,12 +387,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/super-kernel/attribute.git",
-                "reference": "bed9e4dd9323303fb0a29d445419c9c31271156b"
+                "reference": "9672f70903fc87f44fa8112c4dfa616ec0c4dadc"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/super-kernel/attribute/zipball/bed9e4dd9323303fb0a29d445419c9c31271156b",
-                "reference": "bed9e4dd9323303fb0a29d445419c9c31271156b",
+                "url": "https://api.github.com/repos/super-kernel/attribute/zipball/9672f70903fc87f44fa8112c4dfa616ec0c4dadc",
+                "reference": "9672f70903fc87f44fa8112c4dfa616ec0c4dadc",
                 "shasum": ""
             },
             "require": {
@@ -421,7 +421,7 @@
                 "issues": "https://github.com/super-kernel/attribute/issues",
                 "source": "https://github.com/super-kernel/attribute/tree/main"
             },
-            "time": "2026-11-01T07:38:00+00:00"
+            "time": "2026-11-11T02:19:26+00:00"
         },
         {
             "name": "super-kernel/command",
@@ -429,12 +429,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/super-kernel/command.git",
-                "reference": "c9b85e75d5d1491f8afe65e9946c4c60f9b86090"
+                "reference": "7e8175d0100c37ff62cea90314a56faad181b95b"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/super-kernel/command/zipball/c9b85e75d5d1491f8afe65e9946c4c60f9b86090",
-                "reference": "c9b85e75d5d1491f8afe65e9946c4c60f9b86090",
+                "url": "https://api.github.com/repos/super-kernel/command/zipball/7e8175d0100c37ff62cea90314a56faad181b95b",
+                "reference": "7e8175d0100c37ff62cea90314a56faad181b95b",
                 "shasum": ""
             },
             "require": {
@@ -466,7 +466,7 @@
                 "issues": "https://github.com/super-kernel/command/issues",
                 "source": "https://github.com/super-kernel/command/tree/main"
             },
-            "time": "2026-11-10T05:05:58+00:00"
+            "time": "2026-11-11T02:19:36+00:00"
         },
         {
             "name": "super-kernel/context",
@@ -474,12 +474,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/super-kernel/context.git",
-                "reference": "dac168cf0c98246f790a8b344d5cd72ba59d9d31"
+                "reference": "fe42f4bef5d91b140ba67d6c22af8a576c5c93b2"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/super-kernel/context/zipball/dac168cf0c98246f790a8b344d5cd72ba59d9d31",
-                "reference": "dac168cf0c98246f790a8b344d5cd72ba59d9d31",
+                "url": "https://api.github.com/repos/super-kernel/context/zipball/fe42f4bef5d91b140ba67d6c22af8a576c5c93b2",
+                "reference": "fe42f4bef5d91b140ba67d6c22af8a576c5c93b2",
                 "shasum": ""
             },
             "require": {
@@ -513,7 +513,7 @@
                 "issues": "https://github.com/super-kernel/context/issues",
                 "source": "https://github.com/super-kernel/context/tree/main"
             },
-            "time": "2026-11-01T07:39:16+00:00"
+            "time": "2026-11-11T02:19:51+00:00"
         },
         {
             "name": "super-kernel/contract",
@@ -521,12 +521,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/super-kernel/contract.git",
-                "reference": "e17b6bfe984a5f17e8844d837da6921c40d2c3c1"
+                "reference": "a6bd84dc44a446ca05d52b2781a70f2afb45ca52"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/super-kernel/contract/zipball/e17b6bfe984a5f17e8844d837da6921c40d2c3c1",
-                "reference": "e17b6bfe984a5f17e8844d837da6921c40d2c3c1",
+                "url": "https://api.github.com/repos/super-kernel/contract/zipball/a6bd84dc44a446ca05d52b2781a70f2afb45ca52",
+                "reference": "a6bd84dc44a446ca05d52b2781a70f2afb45ca52",
                 "shasum": ""
             },
             "require": {
@@ -555,7 +555,7 @@
                 "issues": "https://github.com/super-kernel/contract/issues",
                 "source": "https://github.com/super-kernel/contract/tree/main"
             },
-            "time": "2026-11-01T07:39:29+00:00"
+            "time": "2026-11-11T02:19:56+00:00"
         },
         {
             "name": "super-kernel/di",
@@ -563,12 +563,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/super-kernel/di.git",
-                "reference": "ed1a880310977dc5b6de748d304cba6e7ed734b8"
+                "reference": "0a41eb1fd6a7987e1887fa98578dfefc7efd11df"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/super-kernel/di/zipball/ed1a880310977dc5b6de748d304cba6e7ed734b8",
-                "reference": "ed1a880310977dc5b6de748d304cba6e7ed734b8",
+                "url": "https://api.github.com/repos/super-kernel/di/zipball/0a41eb1fd6a7987e1887fa98578dfefc7efd11df",
+                "reference": "0a41eb1fd6a7987e1887fa98578dfefc7efd11df",
                 "shasum": ""
             },
             "require": {
@@ -603,7 +603,7 @@
                 "issues": "https://github.com/super-kernel/di/issues",
                 "source": "https://github.com/super-kernel/di/tree/main"
             },
-            "time": "2026-11-10T08:51:03+00:00"
+            "time": "2026-11-11T02:20:01+00:00"
         },
         {
             "name": "super-kernel/event",
@@ -611,12 +611,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/super-kernel/event.git",
-                "reference": "4f53158d495dc6782ee1f528f36593e79f51259e"
+                "reference": "fc6c5b9e9371ef8a18626b80b2fb36c71d1d1a8a"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/super-kernel/event/zipball/4f53158d495dc6782ee1f528f36593e79f51259e",
-                "reference": "4f53158d495dc6782ee1f528f36593e79f51259e",
+                "url": "https://api.github.com/repos/super-kernel/event/zipball/fc6c5b9e9371ef8a18626b80b2fb36c71d1d1a8a",
+                "reference": "fc6c5b9e9371ef8a18626b80b2fb36c71d1d1a8a",
                 "shasum": ""
             },
             "require": {
@@ -643,7 +643,7 @@
                 "issues": "https://github.com/super-kernel/event/issues",
                 "source": "https://github.com/super-kernel/event/tree/main"
             },
-            "time": "2026-11-10T05:07:12+00:00"
+            "time": "2026-11-11T02:20:12+00:00"
         },
         {
             "name": "super-kernel/event-dispatcher",
@@ -651,12 +651,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/super-kernel/event-dispatcher.git",
-                "reference": "0b5287e9cbb71a32fbb82e2b3e18b802ecbc3263"
+                "reference": "ae16d5da4d6df809813958a7285162f22035c5c7"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/super-kernel/event-dispatcher/zipball/0b5287e9cbb71a32fbb82e2b3e18b802ecbc3263",
-                "reference": "0b5287e9cbb71a32fbb82e2b3e18b802ecbc3263",
+                "url": "https://api.github.com/repos/super-kernel/event-dispatcher/zipball/ae16d5da4d6df809813958a7285162f22035c5c7",
+                "reference": "ae16d5da4d6df809813958a7285162f22035c5c7",
                 "shasum": ""
             },
             "require": {
@@ -690,7 +690,7 @@
                 "issues": "https://github.com/super-kernel/event-dispatcher/issues",
                 "source": "https://github.com/super-kernel/event-dispatcher/tree/main"
             },
-            "time": "2026-11-10T05:07:27+00:00"
+            "time": "2026-11-11T02:20:18+00:00"
         },
         {
             "name": "super-kernel/exception-dispatcher",
@@ -698,12 +698,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/super-kernel/exception-dispatcher.git",
-                "reference": "86209600307121e72bc140de330f23685a1b944a"
+                "reference": "fd6e330e8b4358d2d8c8ff97448726cca913dd1e"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/super-kernel/exception-dispatcher/zipball/86209600307121e72bc140de330f23685a1b944a",
-                "reference": "86209600307121e72bc140de330f23685a1b944a",
+                "url": "https://api.github.com/repos/super-kernel/exception-dispatcher/zipball/fd6e330e8b4358d2d8c8ff97448726cca913dd1e",
+                "reference": "fd6e330e8b4358d2d8c8ff97448726cca913dd1e",
                 "shasum": ""
             },
             "require": {
@@ -733,7 +733,7 @@
                 "issues": "https://github.com/super-kernel/exception-dispatcher/issues",
                 "source": "https://github.com/super-kernel/exception-dispatcher/tree/main"
             },
-            "time": "2026-11-10T05:07:42+00:00"
+            "time": "2026-11-11T02:20:25+00:00"
         },
         {
             "name": "super-kernel/framework",
@@ -741,12 +741,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/super-kernel/framework.git",
-                "reference": "accedabbe9fc1326fdee3e7d88341e7ff3c9ad40"
+                "reference": "166dbb22f664c4044ae477d5ae10e8d427e8bbf5"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/super-kernel/framework/zipball/accedabbe9fc1326fdee3e7d88341e7ff3c9ad40",
-                "reference": "accedabbe9fc1326fdee3e7d88341e7ff3c9ad40",
+                "url": "https://api.github.com/repos/super-kernel/framework/zipball/166dbb22f664c4044ae477d5ae10e8d427e8bbf5",
+                "reference": "166dbb22f664c4044ae477d5ae10e8d427e8bbf5",
                 "shasum": ""
             },
             "require": {
@@ -778,7 +778,7 @@
                 "issues": "https://github.com/super-kernel/framework/issues",
                 "source": "https://github.com/super-kernel/framework/tree/main"
             },
-            "time": "2026-11-10T05:07:54+00:00"
+            "time": "2026-11-11T02:20:36+00:00"
         },
         {
             "name": "super-kernel/logger",
@@ -786,12 +786,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/super-kernel/logger.git",
-                "reference": "fc2e986d2b00c15dbc631fc4bcc25419a79fce4a"
+                "reference": "e8b69a59a7c092d6d6e7caf2d6791b259dcf2894"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/super-kernel/logger/zipball/fc2e986d2b00c15dbc631fc4bcc25419a79fce4a",
-                "reference": "fc2e986d2b00c15dbc631fc4bcc25419a79fce4a",
+                "url": "https://api.github.com/repos/super-kernel/logger/zipball/e8b69a59a7c092d6d6e7caf2d6791b259dcf2894",
+                "reference": "e8b69a59a7c092d6d6e7caf2d6791b259dcf2894",
                 "shasum": ""
             },
             "require": {
@@ -821,7 +821,7 @@
                 "issues": "https://github.com/super-kernel/logger/issues",
                 "source": "https://github.com/super-kernel/logger/tree/main"
             },
-            "time": "2026-11-10T08:55:04+00:00"
+            "time": "2026-11-11T02:20:53+00:00"
         },
         {
             "name": "super-kernel/metadata",
@@ -829,12 +829,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/super-kernel/metadata.git",
-                "reference": "9d8dda4b7a9c230493adc837cef8ed91fd9acdc9"
+                "reference": "cca9f143d3884c9eb853c66226fdd328c329efcf"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/super-kernel/metadata/zipball/9d8dda4b7a9c230493adc837cef8ed91fd9acdc9",
-                "reference": "9d8dda4b7a9c230493adc837cef8ed91fd9acdc9",
+                "url": "https://api.github.com/repos/super-kernel/metadata/zipball/cca9f143d3884c9eb853c66226fdd328c329efcf",
+                "reference": "cca9f143d3884c9eb853c66226fdd328c329efcf",
                 "shasum": ""
             },
             "require": {
@@ -862,7 +862,7 @@
                 "issues": "https://github.com/super-kernel/metadata/issues",
                 "source": "https://github.com/super-kernel/metadata/tree/main"
             },
-            "time": "2026-11-10T08:41:07+00:00"
+            "time": "2026-11-11T02:20:58+00:00"
         },
         {
             "name": "super-kernel/reflector",
@@ -870,12 +870,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/super-kernel/reflector.git",
-                "reference": "18e9553f71bf81784d9c99186bb90136b8c9a5b2"
+                "reference": "31b9a0700bfb8f0780ba60e58f23f4732fd546c0"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/super-kernel/reflector/zipball/18e9553f71bf81784d9c99186bb90136b8c9a5b2",
-                "reference": "18e9553f71bf81784d9c99186bb90136b8c9a5b2",
+                "url": "https://api.github.com/repos/super-kernel/reflector/zipball/31b9a0700bfb8f0780ba60e58f23f4732fd546c0",
+                "reference": "31b9a0700bfb8f0780ba60e58f23f4732fd546c0",
                 "shasum": ""
             },
             "require": {
@@ -904,7 +904,7 @@
                 "issues": "https://github.com/super-kernel/reflector/issues",
                 "source": "https://github.com/super-kernel/reflector/tree/main"
             },
-            "time": "2026-11-10T05:09:31+00:00"
+            "time": "2026-11-11T02:21:29+00:00"
         },
         {
             "name": "symfony/console",

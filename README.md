@@ -87,13 +87,15 @@ new <directory> [--composer=<binary>]
 
 `new` creates a project in `<directory>`, a path relative to the global `-d`/`--working-dir` option or the current directory, from the [`super-kernel/skeleton`](https://github.com/super-kernel/skeleton) package with Composer's `create-project` command. Platform requirements are not checked against the PHP that runs Composer, because the project runs on its managed PHP.
 
+A released SKERNEL creates the skeleton at exactly its own version, so SKERNEL 1.0.0-alpha.3 creates `super-kernel/skeleton` 1.0.0-alpha.3; SKERNEL run from source, which has no version, creates it from the development line. The version only selects the template: the template has no `composer.lock`, so Composer resolves its requirements when it creates the project.
+
 With `--composer`, that binary is used. Otherwise SKERNEL uses the first working Composer 2 it finds: `composer` or `composer.phar` in `PATH`, then `~/.local/bin/composer`, `~/bin/composer`, `~/.config/composer/vendor/bin/composer`, and `~/.composer/vendor/bin/composer`. When there is none, it downloads a pinned Composer release, verified against its SHA-256 digest, into its home directory and runs it with a managed PHP, which it builds the first time.
 
 ```text
 Project created in /path/to/my-app.
 ```
 
-A directory that exists and is not empty, a Composer that is not found or fails, or a managed PHP that cannot be provided prints a short message on STDERR and exits with status 1.
+A directory that exists and is not empty, a Composer that is not found or fails, or a managed PHP that cannot be provided prints a short message on STDERR and exits with status 1. When Composer fails for a released SKERNEL, the message also names the skeleton version it asked for and says to run `skernel self-update` and create the project again if Composer could not find that version.
 
 ### run
 
@@ -103,7 +105,7 @@ run [-d|--working-dir=<dir>] [--php=<version>] [--watch] [--] [<arguments>...]
 
 `run` builds the project as `build` does and then runs it from source with its managed PHP, in a separate process in the project directory. `<arguments>` go to the application, so `run swoole:start` starts its Swoole server; put options for the application after `--`. Without `--watch`, SKERNEL exits with the application's exit status.
 
-With `--watch`, SKERNEL restarts the application whenever a project file changes. It checks once a second for changes to PHP files, `.env` and `.env.*` files, and `composer.lock`, leaving out the vendor directory, `target/`, and directories whose name starts with a dot, so the logs and caches a running application writes do not restart it. It sends the application SIGTERM and then SIGKILL after 10 seconds, and builds the project again before it restarts it. An application that exits on its own, or whose build fails, is started again by the next change.
+With `--watch`, SKERNEL restarts the application whenever a project file changes. It checks once a second for changes to PHP files, `.env` and `.env.*` files, and `composer.lock`, leaving out the vendor directory, `target/`, and directories whose name starts with a dot, so the logs and caches a running application writes do not restart it. It sends the application SIGTERM and then SIGKILL after 10 seconds, and builds the project again, including its Composer autoloader, before it restarts it. An application that exits on its own, or whose build fails, is started again by the next change.
 
 SIGINT and SIGTERM stop the application before SKERNEL exits. The failures of `build`, and an application that cannot start, print a short message on STDERR and exit with status 1.
 
@@ -133,9 +135,11 @@ build [-d|--working-dir=<dir>] [--php=<version>]
 
 `build` generates the build artifacts that the application loads at start and writes them to the project's `<vendor>/.cache` directory, honouring its `config.vendor-dir`: the package records with their class maps, the attributes collected from those classes, a build stamp, and whatever the project's components write when the build publishes `SuperKernel\Event\ApplicationBuild`, such as the prepared proxies of `super-kernel/aop`. A SuperKernel application started without them, or with artifacts from an older `composer.lock`, stops with a message that names `skernel build`. The project must have its dependencies installed, including `super-kernel/metadata`, `super-kernel/context`, and `super-kernel/di`, and the build covers the packages of that installation.
 
+Before it generates anything, `build` regenerates the project's Composer autoloader with Composer's `dump-autoload` command, so the build and the application find a class added since `composer install` without a `composer dump-autoload` of your own. It uses the Composer that [`new`](#new) uses without `--composer`: the first working Composer 2 it finds, or else its own. Composer applies the project's own autoloader settings, such as `config.optimize-autoloader` and `config.classmap-authoritative` in `composer.json`, and the development autoload rules follow the installation: a project installed with `--no-dev` stays without them. Composer runs in its own process, and so do the project's `pre-autoload-dump` and `post-autoload-dump` scripts that it runs. When Composer cannot be provided or fails, the build stops before it generates anything and keeps the previous artifacts.
+
 The build runs in two separate processes of the managed PHP CLI, so SKERNEL never loads the project's code itself. The first loads the project's own autoloader, checks that the installed `super-kernel/metadata` uses the build protocol this SKERNEL generates, maps the classes of every installed package, collects the attributes of the classes that declare any, and publishes the records through the project's own `super-kernel/metadata` and `super-kernel/annotator`. A class that cannot be loaded or whose attribute cannot be created is skipped, even when loading it ends the process with a fatal error. The second process bootstraps the container from the records and then publishes `ApplicationBuild` through the project's PSR-14 event dispatcher, when the project has both the event and a dispatcher, without resolving or running the application.
 
-Everything the processes write goes to STDERR, followed by the skipped classes, one per line, sorted by package and class:
+Everything Composer and the processes write goes to STDERR, followed by the skipped classes, one per line, sorted by package and class:
 
 ```text
 SKERNEL skipped 2 classes whose attributes could not be collected:
@@ -149,7 +153,7 @@ On success STDOUT carries one line:
 Build artifacts written to /path/to/my-app/vendor/.cache.
 ```
 
-When the project's `super-kernel/metadata` uses another build protocol, the build stops before it writes anything and says which side to upgrade: SKERNEL, for example with `skernel self-update`, or the project's SuperKernel packages. A project without `super-kernel/metadata` predates SKERNEL-generated artifacts and needs SuperKernel 1.0.0-alpha.2 or later. That, a missing project or dependencies, an invalid configuration file or `--php` value, a managed PHP that cannot be provided, or a failed build prints a short message on STDERR and exits with status 1.
+When the project's `super-kernel/metadata` uses another build protocol, the build stops before it writes anything and says which side to upgrade: SKERNEL, for example with `skernel self-update`, or the project's SuperKernel packages. A project without `super-kernel/metadata` predates SKERNEL-generated artifacts and needs SuperKernel 1.0.0-alpha.2 or later. That, a missing project or dependencies, an invalid configuration file or `--php` value, a managed PHP or Composer that cannot be provided, a Composer that fails to regenerate the autoloader, or a failed build prints a short message on STDERR and exits with status 1.
 
 ### package
 
@@ -162,7 +166,7 @@ package [-d|--working-dir=<dir>] [--php=<version>] [--phar] [--dev] [--output=<p
 
 1. It copies the project without its vendor directory, VCS metadata such as `.git`, its `target/` directory, and the `.env` and `.env.*` files in its root directory, which usually hold machine-local secrets; a packaged application reads its environment from the process environment.
 2. It installs the copy's dependencies from the project's `composer.lock` with the Composer that [`new`](#new) would use: the binary given with `--composer`, a path or a name looked up in `PATH`, or else the first working Composer 2 it finds, or else its own. Development dependencies are left out unless `--dev` is given. The project must have a `composer.lock`, but its own dependencies need not be installed. Composer does not check platform requirements against the PHP that runs it, because the managed PHP is the package's platform.
-3. It runs `build` on the copy with the managed PHP of that installation.
+3. It runs `build` on the copy with the managed PHP of that installation and the same Composer.
 4. It archives the copy into a PHAR whose stub loads the copy's autoloader, obtains the application container, and runs the application, so no entry script is needed.
 5. It writes the managed micro runtime, or the file given with `--runtime`, followed by the PHAR to the output path, or only the PHAR with `--phar`, and makes the result executable. A micro runtime given with `--runtime` must report `cli` as `PHP_SAPI` for the result to start a Swoole server; with static-php-cli, build it with `--with-micro-fake-cli`.
 
@@ -187,7 +191,7 @@ The newest tag is always the [latest release](https://github.com/super-kernel/sk
 
 ## Running from source
 
-To work on SKERNEL itself, run it from a clone of this repository. Every start from source first generates SKERNEL's own build artifacts in its `vendor/.cache`, the way `build` does for a project, so a change to SKERNEL's sources takes effect at the next start; two starts from the same clone wait for each other while one of them generates. SKERNEL can be started from any directory and works on the project in the current directory, or in the one given with `-d`:
+To work on SKERNEL itself, run it from a clone of this repository. Every start from source first generates SKERNEL's own build artifacts in its `vendor/.cache`, the way `build` does for a project but without Composer, so a change to SKERNEL's sources takes effect at the next start; two starts from the same clone wait for each other while one of them generates. SKERNEL's own autoloader is authoritative, so run `composer dump-autoload` after adding a class to SKERNEL. SKERNEL can be started from any directory and works on the project in the current directory, or in the one given with `-d`:
 
 ```bash
 git clone https://github.com/super-kernel/skernel.git

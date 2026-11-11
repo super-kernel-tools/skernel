@@ -23,6 +23,7 @@ use function escapeshellarg;
 use function exec;
 use function file_get_contents;
 use function file_put_contents;
+use function getenv;
 use function implode;
 use function json_encode;
 use function microtime;
@@ -120,6 +121,7 @@ final class ProjectCommandsTest extends TestCase
             'dev' => false,
         ]));
         $this->write($this->project . '/src/App.php', '<?php');
+        $this->composer('');
         putenv('SKERNEL_HOME=' . $this->directory . '/home');
 
         try {
@@ -185,6 +187,10 @@ final class ProjectCommandsTest extends TestCase
             'started in project with serve --port=1',
         ], $this->skernel($arguments . ' -- serve --port=1', $status));
         self::assertSame(0, $status);
+        self::assertStringEqualsFile(
+            $this->directory . '/composer-arguments',
+            $this->project . " dump-autoload --no-interaction --no-dev\n",
+        );
 
         self::assertSame([
             'application error output',
@@ -207,6 +213,7 @@ final class ProjectCommandsTest extends TestCase
             'sleep',
         ], null, [
             'SKERNEL_HOME' => $this->directory . '/home',
+            'PATH'         => $this->path(),
         ], null, 60);
         $process->start();
 
@@ -220,6 +227,10 @@ final class ProjectCommandsTest extends TestCase
             $this->write($this->project . '/src/App.php', '<?php // changed');
             $this->waitFor(static fn(): bool => 2 === substr_count($process->getOutput(), 'started in project'));
             self::assertStringContainsString('The project changed; restarting.', $process->getErrorOutput());
+            self::assertSame(2, substr_count(
+                (string) file_get_contents($this->directory . '/composer-arguments'),
+                $this->project . " dump-autoload --no-interaction --no-dev\n",
+            ));
 
             $process->signal(SIGTERM);
             $process->wait();
@@ -242,6 +253,7 @@ final class ProjectCommandsTest extends TestCase
             'fail',
         ], null, [
             'SKERNEL_HOME' => $this->directory . '/home',
+            'PATH'         => $this->path(),
         ], null, 60);
         $process->start();
 
@@ -252,6 +264,79 @@ final class ProjectCommandsTest extends TestCase
             ));
             self::assertTrue($process->isRunning());
 
+            $this->write($this->project . '/src/Fix.php', '<?php');
+            $this->waitFor(static fn(): bool => 2 === substr_count($process->getOutput(), 'started in project'));
+        } finally {
+            $process->stop(1);
+        }
+    }
+
+    public function testBuildRegeneratesTheAutoloaderWithTheComposerItFinds(): void
+    {
+        self::assertSame([
+            'Build artifacts written to ' . $this->project . '/vendor/.cache.',
+        ], $this->skernel('build --php=' . $this->version . ' -d ' . escapeshellarg($this->project), $status));
+        self::assertSame(0, $status);
+        self::assertStringEqualsFile(
+            $this->directory . '/composer-arguments',
+            $this->project . " dump-autoload --no-interaction --no-dev\n",
+        );
+    }
+
+    public function testBuildAndRunStopWhenComposerFails(): void
+    {
+        $this->composer('exit 4');
+
+        foreach ([
+            'build',
+            'run',
+        ] as $command) {
+            $output = $this->skernel(
+                $command . ' --php=' . $this->version . ' -d ' . escapeshellarg($this->project),
+                $status,
+                '2>&1',
+            );
+
+            self::assertSame(1, $status);
+            self::assertStringContainsString(
+                'RegeneratingtheComposerautoloaderfailedwithexitstatus4.',
+                (string) preg_replace('/\s+/', '', implode('', $output)),
+            );
+            self::assertStringNotContainsString('started in project', implode('', $output));
+        }
+
+        self::assertFileDoesNotExist($this->project . '/vendor/.cache/build.json');
+    }
+
+    public function testRunWithWatchWaitsForAChangeWhenComposerFailsOnARebuild(): void
+    {
+        $process = new Process([
+            PHP_BINARY,
+            dirname(__DIR__, 2) . '/bin/bootstrap.php',
+            'run',
+            '--watch',
+            '--php=' . $this->version,
+            '-d',
+            $this->project,
+            'sleep',
+        ], null, [
+            'SKERNEL_HOME' => $this->directory . '/home',
+            'PATH'         => $this->path(),
+        ], null, 60);
+        $process->start();
+
+        try {
+            $this->waitFor(static fn(): bool => str_contains($process->getOutput(), 'started in project with sleep'));
+
+            $this->composer('exit 4');
+            $this->write($this->project . '/src/App.php', '<?php // changed');
+            $this->waitFor(static fn(): bool => str_contains(
+                $process->getErrorOutput(),
+                'Regenerating the Composer autoloader failed with exit status 4. Waiting for a change.',
+            ));
+            self::assertTrue($process->isRunning());
+
+            $this->composer('');
             $this->write($this->project . '/src/Fix.php', '<?php');
             $this->waitFor(static fn(): bool => 2 === substr_count($process->getOutput(), 'started in project'));
         } finally {
@@ -340,11 +425,34 @@ final class ProjectCommandsTest extends TestCase
         );
     }
 
+    /**
+     * Writes the stand-in Composer that commands find first in PATH: it reports a Composer 2 version, records its
+     * working directory and arguments otherwise, and then runs the given shell code.
+     */
+    private function composer(string $code): void
+    {
+        $this->write($this->directory . '/path/composer', implode("\n", [
+            '#!/bin/sh',
+            'if [ "$1" = --version ]; then echo "Composer version 2.10.3"; exit 0; fi',
+            'echo "$PWD $*" >> ' . escapeshellarg($this->directory . '/composer-arguments'),
+            $code,
+            '',
+        ]));
+        self::assertTrue(chmod($this->directory . '/path/composer', 0o755));
+    }
+
+    /** The PATH in which commands find the stand-in Composer first */
+    private function path(): string
+    {
+        return $this->directory . '/path:' . getenv('PATH');
+    }
+
     /** @return list<string> */
     private function skernel(string $arguments, ?int &$status, string $redirection = '2>/dev/null'): array
     {
         exec(
-            'SKERNEL_HOME=' . escapeshellarg($this->directory . '/home') . ' '
+            'PATH=' . escapeshellarg($this->path())
+            . ' SKERNEL_HOME=' . escapeshellarg($this->directory . '/home') . ' '
             . escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(dirname(__DIR__, 2) . '/bin/bootstrap.php')
             . ' ' . $arguments . ' ' . $redirection,
             $output,

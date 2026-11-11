@@ -16,10 +16,11 @@ use function var_export;
 /**
  * Writes a project's build artifacts in separate PHP processes without creating or running the application.
  *
- * The first process generates the package and annotation records. The second bootstraps the project's container from
- * them, without any class the first loaded, and publishes `SuperKernel\Event\ApplicationBuild` so that components
- * write the artifacts they prepare at build time, such as AOP proxies. Projects without that event or a PSR-14
- * dispatcher have no listener for it, so the event is skipped.
+ * Composer first regenerates the project's autoloader, so that the build and the application see the classes added
+ * since the project's dependencies were installed. The first PHP process then generates the package and annotation
+ * records. The second bootstraps the project's container from them, without any class the first loaded, and publishes
+ * `SuperKernel\Event\ApplicationBuild` so that components write the artifacts they prepare at build time, such as AOP
+ * proxies. Projects without that event or a PSR-14 dispatcher have no listener for it, so the event is skipped.
  */
 final readonly class ProjectBuilder
 {
@@ -50,13 +51,21 @@ final readonly class ProjectBuilder
      * Runs the build in the project directory with the given PHP binary, a path or a name looked up in PATH, forwards
      * everything the processes write, and then lists the classes whose attributes could not be collected.
      *
-     * @param string $skernelVersion The running SKERNEL's version, `UNKNOWN` or empty when it has none
+     * @param non-empty-list<string> $composer       The command that runs Composer
+     * @param string                 $skernelVersion The running SKERNEL's version, `UNKNOWN` or empty when it has none
      *
-     * @throws RuntimeException When the PHP binary is not found or cannot be started, the project's build protocol
-     *                          differs, or either process fails
+     * @throws RuntimeException When Composer cannot be started or fails, the PHP binary is not found or cannot be
+     *                          started, the project's build protocol differs, or either PHP process fails
      */
-    public function build(Project $project, string $phpBinary, string $skernelVersion, OutputInterface $output): void
+    public function build(
+        Project         $project,
+        string          $phpBinary,
+        array           $composer,
+        string          $skernelVersion,
+        OutputInterface $output,
+    ): void
     {
+        ComposerAutoloader::regenerate($project, $composer, $output);
         $diagnostics = $this->metadataGenerator->generate(
             $project,
             $phpBinary,

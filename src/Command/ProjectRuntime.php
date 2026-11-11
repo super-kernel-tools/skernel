@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Src\Command;
 
+use Src\Composer\ComposerLocator;
 use Src\Configuration\ConfigurationLoader;
 use Src\Project\Project;
 use Src\Project\ProjectLocator;
@@ -15,8 +16,8 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
 /**
- * Provides what a command that runs an installed project needs: the project from `--working-dir`, and its managed PHP
- * from `--php` or the project's configuration file.
+ * Provides what a command that builds an installed project needs: the project from `--working-dir`, its managed PHP
+ * from `--php` or the project's configuration file, and the Composer that regenerates its autoloader.
  */
 final readonly class ProjectRuntime
 {
@@ -24,14 +25,16 @@ final readonly class ProjectRuntime
         private ProjectLocator      $projectLocator,
         private ConfigurationLoader $configurationLoader,
         private ManagedPhp          $managedPhp,
+        private ComposerLocator     $composerLocator,
     )
     {
     }
 
     /**
-     * @return array{Project, Runtime}
+     * @return array{Project, Runtime, non-empty-list<string>} The project, its managed PHP, and the Composer command
      *
-     * @throws RuntimeException When the project or its configuration is invalid, or its managed PHP cannot be provided
+     * @throws RuntimeException When the project or its configuration is invalid, or its managed PHP or Composer cannot
+     *                          be provided
      */
     public function resolve(InputInterface $input, OutputInterface $errorOutput): array
     {
@@ -49,6 +52,7 @@ final readonly class ProjectRuntime
                 $php ?? $this->configurationLoader->load($project->directory)->php,
                 $errorOutput,
             ),
+            $this->composerLocator->command(null, $errorOutput),
         ];
     }
 }

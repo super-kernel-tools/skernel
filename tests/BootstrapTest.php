@@ -17,11 +17,14 @@ use Src\Toolchain\StaticPhpCli;
 use Src\Toolchain\ZigMirrors;
 
 use function array_filter;
+use function chmod;
 use function dirname;
 use function end;
 use function escapeshellarg;
 use function exec;
 use function file_get_contents;
+use function file_put_contents;
+use function getenv;
 use function implode;
 use function json_decode;
 use function mkdir;
@@ -140,12 +143,21 @@ final class BootstrapTest extends TestCase
             self::assertTrue(mkdir($runtime, 0o700, true));
             self::assertTrue(symlink(PHP_BINARY, $runtime . '/php'));
             self::assertTrue(touch($runtime . '/micro.sfx') && touch($runtime . '/manifest.json'));
+            // A stand-in Composer found first in PATH keeps the build from regenerating SKERNEL's own autoloader.
+            self::assertTrue(mkdir($home . '/path', 0o700));
+            self::assertNotFalse(file_put_contents($home . '/path/composer', implode("\n", [
+                '#!/bin/sh',
+                'if [ "$1" = --version ]; then echo "Composer version 2.10.3"; exit 0; fi',
+                'echo "$PWD $*" >> ' . escapeshellarg($home . '/composer-arguments'),
+                '',
+            ])));
+            self::assertTrue(chmod($home . '/path/composer', 0o755));
 
             $output = $this->bootstrap(
                 'build --php=' . $version . ' -d ' . escapeshellarg($root),
                 $status,
                 '2>/dev/null',
-                'SKERNEL_HOME=' . escapeshellarg($home),
+                'SKERNEL_HOME=' . escapeshellarg($home) . ' PATH=' . escapeshellarg($home . '/path:' . getenv('PATH')),
             );
 
             self::assertSame(0, $status);
@@ -153,6 +165,10 @@ final class BootstrapTest extends TestCase
                 'Build artifacts written to ' . $root . '/vendor/.cache.',
             ], $output);
             self::assertFileExists($root . '/vendor/.cache/packages.ser');
+            self::assertStringEqualsFile(
+                $home . '/composer-arguments',
+                $root . " dump-autoload --no-interaction --dev\n",
+            );
         } finally {
             putenv('SKERNEL_HOME');
             Directory::remove($home);
