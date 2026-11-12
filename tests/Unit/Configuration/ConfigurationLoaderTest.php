@@ -9,6 +9,7 @@ use PHPUnit\Framework\TestCase;
 use Src\Configuration\ConfigurationLoader;
 use Src\Configuration\PackageConfiguration;
 use Src\Configuration\ProjectConfiguration;
+use Src\Configuration\RunConfiguration;
 use Symfony\Component\Console\Exception\RuntimeException;
 
 use function array_keys;
@@ -46,8 +47,28 @@ final class ConfigurationLoaderTest extends TestCase
         rmdir($this->directory);
     }
 
-    public function testAProjectWithoutAConfigurationFileLeavesEverySettingOpen(): void
+    public function testAProjectWithoutAConfigurationFileGetsTheDefaults(): void
     {
+        $configuration = new ConfigurationLoader()->load($this->directory);
+
+        self::assertEquals(new ProjectConfiguration(), $configuration);
+        self::assertNull($configuration->php);
+        self::assertNull($configuration->composer);
+        self::assertFalse($configuration->run->watch);
+        self::assertSame([
+            '*.php',
+            '.env',
+            '.env.*',
+            'composer.json',
+            'composer.lock',
+        ], $configuration->run->watchFiles);
+        self::assertEquals(new PackageConfiguration(null, null, false, false), $configuration->package);
+    }
+
+    public function testAnEmptyFileKeepsEveryDefault(): void
+    {
+        $this->write('skernel.json', '{"run": {}, "package": {}}');
+
         self::assertEquals(new ProjectConfiguration(), new ConfigurationLoader()->load($this->directory));
     }
 
@@ -57,23 +78,39 @@ final class ConfigurationLoaderTest extends TestCase
             {
                 "$schema": "https://example.com/skernel.schema.json",
                 "php": "8.4",
+                "composer": "tools/composer",
+                "run": {
+                    "watch": true,
+                    "watch-files": ["*.php", "*.yaml"]
+                },
                 "package": {
                     "runtime": "build/micro.sfx",
                     "output": "/opt/my-app",
-                    "composer": "composer2",
                     "dev": true,
-                    "phar": false
+                    "phar": true
                 }
             }
             JSON);
 
-        self::assertEquals(new ProjectConfiguration('8.4', new PackageConfiguration(
-            $this->directory . '/build/micro.sfx',
-            '/opt/my-app',
-            'composer2',
-            true,
-            false,
-        )), new ConfigurationLoader()->load($this->directory));
+        self::assertEquals(new ProjectConfiguration(
+            '8.4',
+            $this->directory . '/tools/composer',
+            new RunConfiguration(true, [
+                '*.php',
+                '*.yaml',
+            ]),
+            new PackageConfiguration($this->directory . '/build/micro.sfx', '/opt/my-app', true, true),
+        ), new ConfigurationLoader()->load($this->directory));
+    }
+
+    public function testAComposerWithoutASlashIsANameLookedUpInPath(): void
+    {
+        $this->write('skernel.json', '{"composer": "composer2", "run": {"watch": true}}');
+
+        self::assertEquals(
+            new ProjectConfiguration(composer: 'composer2', run: new RunConfiguration(true)),
+            new ConfigurationLoader()->load($this->directory),
+        );
     }
 
     public function testTheDistributedFileIsReadOnlyWhenTheLocalOneIsAbsent(): void
@@ -81,7 +118,7 @@ final class ConfigurationLoaderTest extends TestCase
         $this->write('skernel.json.dist', '{"php": "8.3", "package": {"dev": true}}');
 
         self::assertEquals(
-            new ProjectConfiguration('8.3', new PackageConfiguration(dev: true)),
+            new ProjectConfiguration('8.3', package: new PackageConfiguration(dev: true)),
             new ConfigurationLoader()->load($this->directory),
         );
 
@@ -105,6 +142,42 @@ final class ConfigurationLoaderTest extends TestCase
             'unknown package' => [
                 '{"package": {"target": "dist"}}',
                 'skernel.json: unknown setting "package.target".',
+            ],
+            'composer in package' => [
+                '{"package": {"composer": "composer"}}',
+                'skernel.json: unknown setting "package.composer".',
+            ],
+            'unknown run' => [
+                '{"run": {"poll": 1}}',
+                'skernel.json: unknown setting "run.poll".',
+            ],
+            'run list' => [
+                '{"run": [true]}',
+                'skernel.json: "run" must be an object.',
+            ],
+            'string watch' => [
+                '{"run": {"watch": "yes"}}',
+                'skernel.json: "run.watch" must be true or false.',
+            ],
+            'watched string' => [
+                '{"run": {"watch-files": "*.php"}}',
+                'skernel.json: "run.watch-files" must be a non-empty list of non-empty strings.',
+            ],
+            'no watched files' => [
+                '{"run": {"watch-files": []}}',
+                'skernel.json: "run.watch-files" must be a non-empty list of non-empty strings.',
+            ],
+            'empty watched file' => [
+                '{"run": {"watch-files": ["*.php", ""]}}',
+                'skernel.json: "run.watch-files" must be a non-empty list of non-empty strings.',
+            ],
+            'watched object' => [
+                '{"run": {"watch-files": {"php": "*.php"}}}',
+                'skernel.json: "run.watch-files" must be a non-empty list of non-empty strings.',
+            ],
+            'empty composer' => [
+                '{"composer": ""}',
+                'skernel.json: "composer" must be a non-empty string.',
             ],
             'package list' => [
                 '{"package": []}',
@@ -162,17 +235,27 @@ final class ConfigurationLoaderTest extends TestCase
         self::assertSame([
             '$schema',
             'php',
+            'composer',
+            'run',
             'package',
         ], array_keys($schema['properties']));
         self::assertSame([
+            'watch',
+            'watch-files',
+        ], array_keys($schema['properties']['run']['properties']));
+        self::assertSame([
             'runtime',
             'output',
-            'composer',
             'dev',
             'phar',
         ], array_keys($schema['properties']['package']['properties']));
         self::assertFalse($schema['additionalProperties']);
+        self::assertFalse($schema['properties']['run']['additionalProperties']);
         self::assertFalse($schema['properties']['package']['additionalProperties']);
+        self::assertSame(
+            new RunConfiguration()->watchFiles,
+            $schema['properties']['run']['properties']['watch-files']['default'],
+        );
     }
 
     private function write(string $file, string $contents): void

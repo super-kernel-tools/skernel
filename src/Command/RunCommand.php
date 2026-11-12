@@ -10,15 +10,14 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Exception\RuntimeException;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\ConsoleOutputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
 /**
- * Builds and runs the project from source with its managed PHP, and with --watch rebuilds and restarts it whenever its
- * files change.
+ * Builds and runs the project from source with its managed PHP, and when the project's configuration file enables
+ * watching, rebuilds and restarts it whenever a watched file changes.
  */
-#[AttributeCommand(name: 'run', description: 'Build and run the project, and restart it on changes with --watch')]
+#[AttributeCommand(name: 'run', description: 'Build and run the project, and restart it on changes when it watches')]
 final class RunCommand extends Command
 {
     public function __construct(
@@ -36,13 +35,6 @@ final class RunCommand extends Command
             InputArgument::IS_ARRAY,
             'The arguments of the application, such as swoole:start; put options after --',
         );
-        $this->addOption('watch', null, InputOption::VALUE_NONE, 'Restart the application when project files change');
-        $this->addOption(
-            'php',
-            null,
-            InputOption::VALUE_REQUIRED,
-            'The PHP version that runs the project, such as 8.4 or 8.4.27',
-        );
     }
 
     /**
@@ -54,14 +46,14 @@ final class RunCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $errorOutput = $output instanceof ConsoleOutputInterface ? $output->getErrorOutput() : $output;
-        [$project, $runtime, $composer] = $this->projectRuntime->resolve($input, $errorOutput);
+        [$project, $configuration, $runtime, $composer] = $this->projectRuntime->resolve($input, $errorOutput);
 
         return $this->projectRunner->run(
             $project,
             $runtime->php,
             $composer,
             $input->getArgument('arguments'),
-            $input->getOption('watch'),
+            $configuration->run,
             (string) $this->getApplication()?->getVersion(),
             $output,
             $errorOutput,

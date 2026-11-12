@@ -2,7 +2,7 @@
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "https://raw.githubusercontent.com/super-kernel/skernel/main/skernel.schema.json",
     "title": "SKERNEL configuration",
-    "description": "Settings for the options left off SKERNEL's command line, read from skernel.json or skernel.json.dist in the project root.",
+    "description": "The settings of a project for SKERNEL's commands, read from skernel.json or skernel.json.dist in the project root. A setting left out keeps its default.",
     "type": "object",
     "additionalProperties": false,
     "properties": {
@@ -12,13 +12,46 @@
             "minLength": 1
         },
         "php": {
-            "description": "The managed PHP version: major.minor for that branch's latest release, or an exact major.minor.patch.",
+            "description": "The managed PHP version: major.minor for that branch's latest release, or an exact major.minor.patch; by default the latest release that the root package's require.php allows.",
             "type": "string",
             "pattern": "^[1-9][0-9]*\\.[0-9]+(\\.[0-9]+)?$",
             "examples": [
                 "8.4",
                 "8.4.27"
             ]
+        },
+        "composer": {
+            "description": "The Composer that build, run, and package use: a path, relative to the project root when it contains a /, or a name looked up in PATH; by default the first working Composer 2 or else SKERNEL's own.",
+            "type": "string",
+            "minLength": 1
+        },
+        "run": {
+            "description": "Settings of the run command.",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "watch": {
+                    "description": "Whether run rebuilds and restarts the application when a watched file changes.",
+                    "type": "boolean",
+                    "default": false
+                },
+                "watch-files": {
+                    "description": "The name patterns of the watched files, with *, ?, and [...]; the vendor directory, target/, and directories whose name starts with a dot are never watched.",
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "default": [
+                        "*.php",
+                        ".env",
+                        ".env.*",
+                        "composer.json",
+                        "composer.lock"
+                    ]
+                }
+            }
         },
         "package": {
             "description": "Settings of the package command.",
@@ -31,22 +64,19 @@
                     "minLength": 1
                 },
                 "output": {
-                    "description": "The package path, relative to the project root; by default target/<name>.",
-                    "type": "string",
-                    "minLength": 1
-                },
-                "composer": {
-                    "description": "The Composer binary that installs the packaged copy, a path or a name looked up in PATH, by default a working Composer 2 or else SKERNEL's own.",
+                    "description": "The package path, relative to the project root; by default target/<name>, or target/<name>.phar for a PHAR.",
                     "type": "string",
                     "minLength": 1
                 },
                 "dev": {
                     "description": "Whether the development dependencies are installed into the package.",
-                    "type": "boolean"
+                    "type": "boolean",
+                    "default": false
                 },
                 "phar": {
                     "description": "Whether packaging stops at the PHAR instead of a standalone binary.",
-                    "type": "boolean"
+                    "type": "boolean",
+                    "default": false
                 }
             }
         }

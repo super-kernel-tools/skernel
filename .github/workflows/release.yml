@@ -85,8 +85,11 @@ jobs:
       - name: Install the dependencies
         run: composer install --no-dev --no-interaction --no-progress
 
+      # The package path is a setting of the project, so it goes into SKERNEL's own configuration file.
       - name: Package SKERNEL
-        run: php bin/bootstrap.php package --output="$BINARY"
+        run: |
+          printf '{"package": {"output": "%s"}}\n' "$BINARY" > skernel.json
+          php bin/bootstrap.php package
 
       - name: Check the binary
         run: .github/scripts/check-binary.sh "$PWD/$BINARY"

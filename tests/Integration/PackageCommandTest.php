@@ -166,9 +166,12 @@ final class PackageCommandTest extends TestCase
         Directory::remove($this->directory);
     }
 
-    public function testPackagesAPharWithoutMetadataSecretsOrOldOutput(): void
+    public function testPackagesAPharWithoutMetadataSecretsConfigurationOrOldOutput(): void
     {
-        $output = $this->package('--phar --php=' . $this->version . ' --composer=' . $this->composer(), $status);
+        $this->settings([
+            'phar' => true,
+        ]);
+        $output = $this->package($status);
 
         self::assertSame(0, $status, implode("\n", $output));
         self::assertSame([
@@ -204,7 +207,10 @@ final class PackageCommandTest extends TestCase
 
     public function testPackagesAStandaloneBinaryWithTheManagedMicroRuntime(): void
     {
-        $output = $this->package('--dev --php=' . $this->version . ' --composer=' . $this->composer(), $status);
+        $this->settings([
+            'dev' => true,
+        ]);
+        $output = $this->package($status);
 
         self::assertSame(0, $status, implode("\n", $output));
         self::assertSame([
@@ -219,31 +225,50 @@ final class PackageCommandTest extends TestCase
         self::assertStringStartsWith('MICRO<?php', $binary);
     }
 
-    public function testTakesTheOptionsLeftOffTheCommandLineFromTheConfigurationFile(): void
+    public function testWritesThePackageToTheOutputOfTheDistributedConfigurationFile(): void
     {
         $this->write($this->project . '/skernel.json.dist', (string) json_encode([
-            'php'     => $this->version,
-            'package' => [
-                'composer' => $this->directory . '/bin/composer',
-                'output'   => 'dist/demo.phar',
-                'phar'     => true,
+            'php'      => $this->version,
+            'composer' => $this->directory . '/bin/composer',
+            'package'  => [
+                'output' => 'dist/demo.phar',
+                'phar'   => true,
             ],
         ]));
 
-        $output = $this->package('', $status);
+        $output = $this->package($status);
 
         self::assertSame(0, $status, implode("\n", $output));
         self::assertSame([
             'Package written to ' . $this->project . '/dist/demo.phar.',
         ], $output);
         self::assertFileExists($this->project . '/dist/demo.phar');
+        self::assertNotContains('skernel.json.dist', $this->entries($this->project . '/dist/demo.phar'));
+    }
+
+    public function testRejectsAMicroRuntimeThatIsNotFound(): void
+    {
+        $this->settings([
+            'runtime' => 'build/micro.sfx',
+        ]);
+
+        $output = $this->package($status, '2>&1 >/dev/null');
+
+        self::assertSame(1, $status);
+        self::assertStringContainsString(
+            'Themicroruntime' . $this->project . '/build/micro.sfxwasnotfound.',
+            (string) preg_replace('/\s+/', '', implode('', $output)),
+        );
     }
 
     public function testPackagesAProjectWhoseDependenciesAreNotInstalled(): void
     {
         Directory::remove($this->project . '/vendor');
+        $this->settings([
+            'phar' => true,
+        ]);
 
-        $output = $this->package('--phar --php=' . $this->version . ' --composer=' . $this->composer(), $status);
+        $output = $this->package($status);
 
         self::assertSame(0, $status, implode("\n", $output));
         self::assertSame([
@@ -252,14 +277,21 @@ final class PackageCommandTest extends TestCase
         self::assertDirectoryDoesNotExist($this->project . '/vendor');
     }
 
-    public function testFindsAWorkingComposerWhenNoneIsGiven(): void
+    public function testFindsAWorkingComposerWhenNoneIsConfigured(): void
     {
+        $this->write($this->project . '/skernel.json', (string) json_encode([
+            'php'     => $this->version,
+            'package' => [
+                'phar' => true,
+            ],
+        ]));
+
         exec(
             'PATH=' . escapeshellarg($this->directory . '/bin:/usr/bin:/bin')
             . ' HOME=' . escapeshellarg($this->directory)
             . ' SKERNEL_HOME=' . escapeshellarg($this->directory . '/home') . ' '
             . escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(dirname(__DIR__, 2) . '/bin/bootstrap.php')
-            . ' package --phar --php=' . $this->version . ' -d ' . escapeshellarg($this->project) . ' 2>/dev/null',
+            . ' package -d ' . escapeshellarg($this->project) . ' 2>/dev/null',
             $output,
             $status,
         );
@@ -275,7 +307,7 @@ final class PackageCommandTest extends TestCase
     {
         unlink($this->project . '/composer.lock');
 
-        $output = $this->package('--phar', $status, '2>&1 >/dev/null');
+        $output = $this->package($status, '2>&1 >/dev/null');
 
         self::assertSame(1, $status);
         self::assertStringContainsString(
@@ -284,12 +316,27 @@ final class PackageCommandTest extends TestCase
         );
     }
 
+    /**
+     * Writes the project's `skernel.json` with the running PHP version, the stand-in Composer, and the given
+     * `package` settings.
+     *
+     * @param array<string, mixed> $package
+     */
+    private function settings(array $package): void
+    {
+        $this->write($this->project . '/skernel.json', (string) json_encode([
+            'php'      => $this->version,
+            'composer' => $this->directory . '/bin/composer',
+            'package'  => $package,
+        ]));
+    }
+
     /** @return list<string> */
-    private function package(string $options, ?int &$status, string $redirection = '2>/dev/null'): array
+    private function package(?int &$status, string $redirection = '2>/dev/null'): array
     {
         $command = 'SKERNEL_HOME=' . escapeshellarg($this->directory . '/home') . ' '
             . escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(dirname(__DIR__, 2) . '/bin/bootstrap.php')
-            . ' package ' . $options . ' -d ' . escapeshellarg($this->project) . ' ' . $redirection;
+            . ' package -d ' . escapeshellarg($this->project) . ' ' . $redirection;
 
         exec($command, $output, $status);
 
@@ -304,11 +351,6 @@ final class PackageCommandTest extends TestCase
         self::assertStringEndsWith('/project dump-autoload --no-interaction ' . $mode . "\n", $line);
         self::assertStringStartsNotWith($this->project . ' ', $line);
         self::assertSame(1, substr_count($line, "\n"));
-    }
-
-    private function composer(): string
-    {
-        return escapeshellarg($this->directory . '/bin/composer');
     }
 
     private function vendor(string $directory): void

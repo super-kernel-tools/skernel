@@ -9,9 +9,12 @@ use stdClass;
 use Symfony\Component\Console\Exception\RuntimeException;
 
 use function array_diff;
+use function array_filter;
+use function array_is_list;
 use function array_keys;
 use function get_object_vars;
 use function implode;
+use function is_array;
 use function is_bool;
 use function is_string;
 use function sprintf;
@@ -55,6 +58,25 @@ final class Setting
     {
         if (null !== $value && (!is_string($value) || '' === $value)) {
             throw new RuntimeException(sprintf('%s: "%s" must be a non-empty string.', $file, $key));
+        }
+
+        return $value;
+    }
+
+    /**
+     * @return non-empty-list<non-empty-string>|null
+     *
+     * @throws RuntimeException When a present value is not a non-empty list of non-empty strings
+     */
+    public static function list(mixed $value, string $file, string $key): ?array
+    {
+        if (null !== $value && (
+            !is_array($value)
+            || [] === $value
+            || !array_is_list($value)
+            || [] !== array_filter($value, static fn(mixed $item): bool => !is_string($item) || '' === $item)
+        )) {
+            throw new RuntimeException(sprintf('%s: "%s" must be a non-empty list of non-empty strings.', $file, $key));
         }
 
         return $value;

@@ -35,7 +35,8 @@ fi
 env -i "$binary" list --raw
 
 "$binary" new "$work/app"
-"$binary" package -d "$work/app" --output="$work/app-binary"
+printf '{"package": {"output": "%s"}}\n' "$work/app-binary" >"$work/app/skernel.json"
+"$binary" package -d "$work/app"
 
 mkdir "$work/elsewhere"
 mv "$work/app-binary" "$work/elsewhere/app"

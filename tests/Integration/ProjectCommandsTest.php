@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Src\Tests\Integration;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\RequiresOperatingSystemFamily;
 use PHPUnit\Framework\TestCase;
 use Src\Filesystem\Directory;
@@ -121,6 +122,7 @@ final class ProjectCommandsTest extends TestCase
             'dev' => false,
         ]));
         $this->write($this->project . '/src/App.php', '<?php');
+        $this->settings([]);
         $this->composer('');
         putenv('SKERNEL_HOME=' . $this->directory . '/home');
 
@@ -181,7 +183,7 @@ final class ProjectCommandsTest extends TestCase
 
     public function testRunForwardsTheArgumentsOutputAndExitStatusOfTheApplication(): void
     {
-        $arguments = 'run --php=' . $this->version . ' -d ' . escapeshellarg($this->project);
+        $arguments = 'run -d ' . escapeshellarg($this->project);
 
         self::assertSame([
             'started in project with serve --port=1',
@@ -202,12 +204,15 @@ final class ProjectCommandsTest extends TestCase
 
     public function testRunWithWatchRestartsOnAChangeAndStopsOnASignal(): void
     {
+        $this->settings([
+            'run' => [
+                'watch' => true,
+            ],
+        ]);
         $process = new Process([
             PHP_BINARY,
             dirname(__DIR__, 2) . '/bin/bootstrap.php',
             'run',
-            '--watch',
-            '--php=' . $this->version,
             '-d',
             $this->project,
             'sleep',
@@ -232,6 +237,16 @@ final class ProjectCommandsTest extends TestCase
                 $this->project . " dump-autoload --no-interaction --no-dev\n",
             ));
 
+            $this->write($this->project . '/composer.json', (string) json_encode([
+                'name'     => 'acme/demo',
+                'autoload' => [
+                    'classmap' => [
+                        'lib/',
+                    ],
+                ],
+            ]));
+            $this->waitFor(static fn(): bool => 3 === substr_count($process->getOutput(), 'started in project'));
+
             $process->signal(SIGTERM);
             $process->wait();
             self::assertFalse($process->isRunning());
@@ -242,12 +257,15 @@ final class ProjectCommandsTest extends TestCase
 
     public function testRunWithWatchWaitsForAChangeAfterTheApplicationExits(): void
     {
+        $this->settings([
+            'run' => [
+                'watch' => true,
+            ],
+        ]);
         $process = new Process([
             PHP_BINARY,
             dirname(__DIR__, 2) . '/bin/bootstrap.php',
             'run',
-            '--watch',
-            '--php=' . $this->version,
             '-d',
             $this->project,
             'fail',
@@ -275,7 +293,7 @@ final class ProjectCommandsTest extends TestCase
     {
         self::assertSame([
             'Build artifacts written to ' . $this->project . '/vendor/.cache.',
-        ], $this->skernel('build --php=' . $this->version . ' -d ' . escapeshellarg($this->project), $status));
+        ], $this->skernel('build -d ' . escapeshellarg($this->project), $status));
         self::assertSame(0, $status);
         self::assertStringEqualsFile(
             $this->directory . '/composer-arguments',
@@ -292,7 +310,7 @@ final class ProjectCommandsTest extends TestCase
             'run',
         ] as $command) {
             $output = $this->skernel(
-                $command . ' --php=' . $this->version . ' -d ' . escapeshellarg($this->project),
+                $command . ' -d ' . escapeshellarg($this->project),
                 $status,
                 '2>&1',
             );
@@ -310,12 +328,15 @@ final class ProjectCommandsTest extends TestCase
 
     public function testRunWithWatchWaitsForAChangeWhenComposerFailsOnARebuild(): void
     {
+        $this->settings([
+            'run' => [
+                'watch' => true,
+            ],
+        ]);
         $process = new Process([
             PHP_BINARY,
             dirname(__DIR__, 2) . '/bin/bootstrap.php',
             'run',
-            '--watch',
-            '--php=' . $this->version,
             '-d',
             $this->project,
             'sleep',
@@ -342,6 +363,83 @@ final class ProjectCommandsTest extends TestCase
         } finally {
             $process->stop(1);
         }
+    }
+
+    public function testRunWithoutWatchingIgnoresChanges(): void
+    {
+        $process = new Process([
+            PHP_BINARY,
+            dirname(__DIR__, 2) . '/bin/bootstrap.php',
+            'run',
+            '-d',
+            $this->project,
+            'sleep',
+        ], null, [
+            'SKERNEL_HOME' => $this->directory . '/home',
+            'PATH'         => $this->path(),
+        ], null, 60);
+        $process->start();
+
+        try {
+            $this->waitFor(static fn(): bool => str_contains($process->getOutput(), 'started in project with sleep'));
+
+            $this->write($this->project . '/src/App.php', '<?php // changed');
+            usleep(1_300_000);
+            self::assertSame(1, substr_count($process->getOutput(), 'started in project'));
+            self::assertStringNotContainsString('restarting', $process->getErrorOutput());
+        } finally {
+            $process->stop(1);
+        }
+    }
+
+    public function testBuildUsesTheComposerOfTheConfigurationFile(): void
+    {
+        $this->write($this->project . '/tools/composer', implode("\n", [
+            '#!/bin/sh',
+            'echo "configured $*" >> ' . escapeshellarg($this->directory . '/composer-arguments'),
+            '',
+        ]));
+        self::assertTrue(chmod($this->project . '/tools/composer', 0o755));
+        $this->settings([
+            'composer' => 'tools/composer',
+        ]);
+
+        $this->skernel('build -d ' . escapeshellarg($this->project), $status);
+
+        self::assertSame(0, $status);
+        self::assertStringEqualsFile(
+            $this->directory . '/composer-arguments',
+            "configured dump-autoload --no-interaction --no-dev\n",
+        );
+    }
+
+    /** @return array<string, array{string}> */
+    public static function projectSettingOptions(): array
+    {
+        return [
+            'build --php' => [
+                'build --php=8.4',
+            ],
+            'run --php' => [
+                'run --php=8.4',
+            ],
+            'run --watch' => [
+                'run --watch',
+            ],
+            'package --output' => [
+                'package --output=app',
+            ],
+        ];
+    }
+
+    #[DataProvider('projectSettingOptions')]
+    public function testRejectsAProjectSettingOnTheCommandLine(string $arguments): void
+    {
+        $output = $this->skernel($arguments . ' -d ' . escapeshellarg($this->project), $status, '2>&1');
+
+        self::assertSame(1, $status);
+        self::assertMatchesRegularExpression('/The "--\w+" option does not exist\./', implode(' ', $output));
+        self::assertFileDoesNotExist($this->directory . '/composer-arguments');
     }
 
     public function testNewCreatesAProjectFromTheSkeletonWithComposer(): void
@@ -439,6 +537,19 @@ final class ProjectCommandsTest extends TestCase
             '',
         ]));
         self::assertTrue(chmod($this->directory . '/path/composer', 0o755));
+    }
+
+    /**
+     * Writes the project's `skernel.json` with the running PHP version and the given settings.
+     *
+     * @param array<string, mixed> $settings
+     */
+    private function settings(array $settings): void
+    {
+        $this->write($this->project . '/skernel.json', (string) json_encode([
+            'php' => $this->version,
+            ...$settings,
+        ]));
     }
 
     /** The PATH in which commands find the stand-in Composer first */
