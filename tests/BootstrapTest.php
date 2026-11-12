@@ -27,12 +27,14 @@ use function file_put_contents;
 use function getenv;
 use function implode;
 use function json_decode;
+use function json_encode;
 use function mkdir;
 use function preg_replace;
 use function putenv;
 use function symlink;
 use function sys_get_temp_dir;
 use function tempnam;
+use function time;
 use function touch;
 use function unlink;
 
@@ -152,9 +154,23 @@ final class BootstrapTest extends TestCase
                 '',
             ])));
             self::assertTrue(chmod($home . '/path/composer', 0o755));
+            // SKERNEL has no configuration file, so php.net's answer, cached here, selects the running PHP's version.
+            self::assertTrue(mkdir($home . '/cache', 0o700));
+            self::assertNotFalse(file_put_contents($home . '/cache/php-releases.json', (string) json_encode([
+                'active' => [
+                    'checked' => time(),
+                    'data'    => [
+                        (string) PHP_MAJOR_VERSION => [
+                            PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION => [
+                                'version' => $version,
+                            ],
+                        ],
+                    ],
+                ],
+            ])));
 
             $output = $this->bootstrap(
-                'build --php=' . $version . ' -d ' . escapeshellarg($root),
+                'build -d ' . escapeshellarg($root),
                 $status,
                 '2>/dev/null',
                 'SKERNEL_HOME=' . escapeshellarg($home) . ' PATH=' . escapeshellarg($home . '/path:' . getenv('PATH')),
@@ -173,21 +189,6 @@ final class BootstrapTest extends TestCase
             putenv('SKERNEL_HOME');
             Directory::remove($home);
         }
-    }
-
-    public function testBuildRejectsAPhpOptionThatIsNotAVersion(): void
-    {
-        $output = $this->bootstrap(
-            'build --php=php8.4 -d ' . escapeshellarg(dirname(__DIR__)),
-            $status,
-            '2>&1 >/dev/null',
-        );
-
-        self::assertSame(1, $status);
-        self::assertStringContainsString(
-            'The --php option must be a PHP version such as 8.4 or 8.4.27.',
-            (string) preg_replace('/\s+/', ' ', implode(' ', $output)),
-        );
     }
 
     public function testBuildRejectsADirectoryWithoutAProject(): void

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Src\Run;
 
 use Src\Build\ProjectBuilder;
+use Src\Configuration\RunConfiguration;
 use Src\Process\Executable;
 use Src\Project\Project;
 use Symfony\Component\Console\Exception\RuntimeException;
@@ -27,7 +28,7 @@ use const SIGINT;
 use const SIGTERM;
 
 /**
- * Runs a project from source in a separate PHP process, and with watching restarts it whenever its files change.
+ * Runs a project from source in a separate PHP process, and when watching restarts it whenever a watched file changes.
  *
  * Every start builds the project first, so the application loads an autoloader and artifacts that match its sources.
  * The process runs the standard application entry sequence in the project directory. A watched application that exits
@@ -66,6 +67,7 @@ final readonly class ProjectRunner
      * @param string                 $phpBinary      A path or a name looked up in PATH
      * @param non-empty-list<string> $composer       The command that runs Composer
      * @param list<string>           $arguments      The arguments of the application
+     * @param RunConfiguration       $run            Whether and which files the run watches
      * @param string                 $skernelVersion The running SKERNEL's version, `UNKNOWN` or empty when it has none
      *
      * @return int The exit status of the application
@@ -74,14 +76,14 @@ final readonly class ProjectRunner
      *                          temporary entry script cannot be written
      */
     public function run(
-        Project         $project,
-        string          $phpBinary,
-        array           $composer,
-        array           $arguments,
-        bool            $watch,
-        string          $skernelVersion,
-        OutputInterface $output,
-        OutputInterface $errorOutput,
+        Project          $project,
+        string           $phpBinary,
+        array            $composer,
+        array            $arguments,
+        RunConfiguration $run,
+        string           $skernelVersion,
+        OutputInterface  $output,
+        OutputInterface  $errorOutput,
     ): int
     {
         $command = [
@@ -158,7 +160,7 @@ final readonly class ProjectRunner
             }
 
             $process = $start();
-            $snapshot = $watch ? ProjectFiles::snapshot($project) : [];
+            $snapshot = $run->watch ? ProjectFiles::snapshot($project, $run->watchFiles) : [];
             $checked = hrtime(true);
             $reported = false;
 
@@ -171,7 +173,7 @@ final readonly class ProjectRunner
                     return $process?->getExitCode() ?? 1;
                 }
 
-                if (!$running && !$watch) {
+                if (!$running && !$run->watch) {
                     return $process?->getExitCode() ?? 1;
                 }
 
@@ -183,9 +185,9 @@ final readonly class ProjectRunner
                     $reported = true;
                 }
 
-                if ($watch && self::WATCH_INTERVAL <= hrtime(true) - $checked) {
+                if ($run->watch && self::WATCH_INTERVAL <= hrtime(true) - $checked) {
                     $checked = hrtime(true);
-                    $current = ProjectFiles::snapshot($project);
+                    $current = ProjectFiles::snapshot($project, $run->watchFiles);
 
                     if ($current !== $snapshot) {
                         $snapshot = $current;

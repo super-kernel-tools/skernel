@@ -61,7 +61,7 @@ final readonly class PhpReleases
 
         if ([] === $versions) {
             throw new RuntimeException(sprintf(
-                'No supported PHP release satisfies the requirement %s; set "php" in skernel.json or pass --php.',
+                'No supported PHP release satisfies the requirement %s; set "php" in skernel.json.',
                 $constraint,
             ));
         }

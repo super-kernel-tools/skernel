@@ -12,20 +12,16 @@ use Src\Package\DependencyInstaller;
 use Src\Package\PackageFile;
 use Src\Package\PharBuilder;
 use Src\Package\ProjectCopier;
-use Src\Project\AbsolutePath;
 use Src\Project\ProjectLocator;
 use Src\Toolchain\ManagedPhp;
-use Src\Toolchain\PhpVersion;
 use SuperKernel\Command\Attribute\Command as AttributeCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Exception\RuntimeException;
 use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\ConsoleOutputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
 use function basename;
-use function getcwd;
 use function is_file;
 use function sprintf;
 use function strrchr;
@@ -37,7 +33,7 @@ use function unlink;
 /**
  * Builds a staged copy of the project with its managed PHP and packages it as a standalone binary or a PHAR.
  *
- * Options left off the command line come from the project's SKERNEL configuration file, then from the defaults.
+ * The PHP version, the Composer, and what is packaged where come from the project's configuration file.
  */
 #[AttributeCommand(name: 'package', description: 'Package the project as a standalone binary or a PHAR')]
 final class PackageCommand extends Command
@@ -55,31 +51,6 @@ final class PackageCommand extends Command
         parent::__construct();
     }
 
-    protected function configure(): void
-    {
-        $this->addOption('phar', null, InputOption::VALUE_NONE, 'Stop at the PHAR instead of a standalone binary');
-        $this->addOption('dev', null, InputOption::VALUE_NONE, 'Install the development dependencies into the package');
-        $this->addOption('output', null, InputOption::VALUE_REQUIRED, 'The package path, by default target/<name>');
-        $this->addOption(
-            'php',
-            null,
-            InputOption::VALUE_REQUIRED,
-            'The PHP version that runs the package, such as 8.4 or 8.4.27',
-        );
-        $this->addOption(
-            'composer',
-            null,
-            InputOption::VALUE_REQUIRED,
-            "The Composer binary that installs the packaged copy, by default a working Composer 2 or else SKERNEL's own",
-        );
-        $this->addOption(
-            'runtime',
-            null,
-            InputOption::VALUE_REQUIRED,
-            'A micro.sfx that replaces the managed micro runtime of the standalone binary',
-        );
-    }
-
     /**
      * @throws RuntimeException When the project or its configuration is invalid, or staging, installing, building,
      *                          or writing the package fails
@@ -89,12 +60,6 @@ final class PackageCommand extends Command
         $project = $this->projectLocator->find($input->getOption('working-dir'));
         $settings = $this->configurationLoader->load($project->directory);
         $configuration = $settings->package;
-        $workingDirectory = (string) getcwd();
-        $php = $input->getOption('php');
-
-        if (null !== $php && !PhpVersion::isValid($php)) {
-            throw new RuntimeException('The --php option must be a PHP version such as 8.4 or 8.4.27.');
-        }
 
         if (!is_file($project->directory . '/composer.lock')) {
             throw new RuntimeException(sprintf(
@@ -103,9 +68,8 @@ final class PackageCommand extends Command
             ));
         }
 
-        $phar = $input->getOption('phar') || true === $configuration->phar;
-        $runtime = $input->getOption('runtime');
-        $runtime = null === $runtime ? $configuration->runtime : AbsolutePath::resolve($runtime, $workingDirectory);
+        $phar = $configuration->phar;
+        $runtime = $configuration->runtime;
 
         if (!$phar && null !== $runtime && !is_file($runtime)) {
             throw new RuntimeException(sprintf('The micro runtime %s was not found.', $runtime));
@@ -114,9 +78,7 @@ final class PackageCommand extends Command
         $name = null === $project->name
             ? basename($project->directory)
             : substr((string) strrchr('/' . $project->name, '/'), 1);
-        $target = $input->getOption('output');
-        $target = null === $target ? $configuration->output : AbsolutePath::resolve($target, $workingDirectory);
-        $target ??= $project->directory . '/target/' . $name . ($phar ? '.phar' : '');
+        $target = $configuration->output ?? $project->directory . '/target/' . $name . ($phar ? '.phar' : '');
         $errorOutput = $output instanceof ConsoleOutputInterface ? $output->getErrorOutput() : $output;
         $staging = tempnam(sys_get_temp_dir(), 'skernel-package-');
 
@@ -125,19 +87,19 @@ final class PackageCommand extends Command
         }
 
         try {
+            // The configuration file holds SKERNEL's settings for this machine's builds, which the package never reads.
             ProjectCopier::copy($project->directory, $staging . '/project', [
                 $project->vendorDirectory,
                 $project->directory . '/target',
+                $project->directory . '/skernel.json',
+                $project->directory . '/skernel.json.dist',
                 $target,
             ]);
-            $composer = $this->composerLocator->command(
-                $input->getOption('composer') ?? $configuration->composer,
-                $errorOutput,
-            );
+            $composer = $this->composerLocator->command($settings->composer, $errorOutput);
             $status = $this->dependencyInstaller->install(
                 $staging . '/project',
                 $composer,
-                $input->getOption('dev') || true === $configuration->dev,
+                $configuration->dev,
                 $errorOutput,
             );
 
@@ -149,11 +111,7 @@ final class PackageCommand extends Command
             }
 
             $staged = $this->projectLocator->locate($staging . '/project');
-            $managed = $this->managedPhp->runtime(
-                $staged,
-                $php ?? $settings->php,
-                $errorOutput,
-            );
+            $managed = $this->managedPhp->runtime($staged, $settings->php, $errorOutput);
             $this->projectBuilder->build(
                 $staged,
                 $managed->php,

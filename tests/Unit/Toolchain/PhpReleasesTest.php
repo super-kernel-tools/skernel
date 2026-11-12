@@ -70,7 +70,7 @@ final class PhpReleasesTest extends ToolchainTestCase
 
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessageIs(
-            'No supported PHP release satisfies the requirement ^7.4; set "php" in skernel.json or pass --php.',
+            'No supported PHP release satisfies the requirement ^7.4; set "php" in skernel.json.',
         );
 
         $this->releases()->resolve(null, '^7.4');

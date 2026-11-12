@@ -31,27 +31,42 @@ Commands work on the SuperKernel application in the current directory, or in the
 
 ## Configuration file
 
-Options left off the command line are read from `skernel.json` in the project's root directory, or from `skernel.json.dist` when `skernel.json` does not exist; the two files are never merged. Commit `skernel.json.dist` with the project's shared settings and keep machine-specific overrides in an ignored `skernel.json`.
+A project's settings for SKERNEL's commands are read from `skernel.json` in the project's root directory, or from `skernel.json.dist` when `skernel.json` does not exist; the two files are never merged. They have no command-line options: the command line says only where to work, with the global `-d`/`--working-dir` option, and passes the application's arguments after `run --`. Commit `skernel.json.dist` with the project's shared settings and keep machine-specific settings in an ignored `skernel.json`.
 
 ```json
 {
     "$schema": "https://raw.githubusercontent.com/super-kernel/skernel/main/skernel.schema.json",
     "php": "8.4",
+    "composer": "composer",
+    "run": {
+        "watch": true,
+        "watch-files": ["*.php", ".env", ".env.*", "composer.json", "composer.lock"]
+    },
     "package": {
         "runtime": "build/micro.sfx",
         "output": "target/my-app",
-        "composer": "composer",
         "dev": false,
         "phar": false
     }
 }
 ```
 
-The keys mirror the command options: `php` applies to every command, and the `package` section to `package`. Command-line options take precedence over the file, and the file over the built-in defaults. Relative paths in the file resolve against the project's root directory, while relative paths on the command line resolve against the current directory. An unknown key or a value of the wrong type stops the command with a message that names the file and the key. [`skernel.schema.json`](skernel.schema.json) describes the file for editors that support JSON Schema.
+| Key | Used by | Default |
+| --- | --- | --- |
+| `php` | `build`, `run`, `package` | the latest PHP release that the root package's `require.php` allows, see [Managed PHP](#managed-php) |
+| `composer` | `build`, `run`, `package` | the first working Composer 2 SKERNEL finds, or else its own, as for [`new`](#new) |
+| `run.watch` | `run` | `false` |
+| `run.watch-files` | `run` | `["*.php", ".env", ".env.*", "composer.json", "composer.lock"]` |
+| `package.runtime` | `package` | the managed micro runtime |
+| `package.output` | `package` | `target/<name>`, or `target/<name>.phar` for a PHAR |
+| `package.dev` | `package` | `false` |
+| `package.phar` | `package` | `false` |
+
+A setting that the file leaves out, and every setting of a project without the file, takes its default. Relative paths resolve against the project's root directory, and a `composer` value without a `/` is a name looked up in `PATH`. An unknown key or a value of the wrong type stops the command with a message that names the file and the key. [`skernel.schema.json`](skernel.schema.json) describes the file for editors that support JSON Schema.
 
 ## Managed PHP
 
-SKERNEL builds, runs, and packages a project with a static PHP build of its own rather than with the PHP on your system. A PHP version is given as `major.minor`, such as `8.4`, which selects that branch's latest release on php.net, or as `major.minor.patch`, such as `8.4.27`. Without a version, SKERNEL selects the latest supported PHP release that satisfies the root package's `require.php`.
+SKERNEL builds, runs, and packages a project with a static PHP build of its own rather than with the PHP on your system. The `php` setting gives the version as `major.minor`, such as `8.4`, which selects that branch's latest release on php.net, or as `major.minor.patch`, such as `8.4.27`. Without a version, SKERNEL selects the latest supported PHP release that satisfies the root package's `require.php`.
 
 The build contains the PHP extensions that the project's installation requires through `ext-*` requirements in the root manifest, in its development requirements when they are installed, and in every installed package, together with `phar`, which packaging needs, and `tokenizer`, which `build` needs. SKERNEL builds it once per platform, version, and extension set with a pinned release of [static-php-cli](https://github.com/crazywhalecc/static-php-cli), producing a static PHP CLI and a micro runtime for standalone binaries, and reuses it afterwards. The micro runtime reports `cli` as `PHP_SAPI`, so a standalone binary starts what requires the CLI, such as a Swoole server. On Linux, both are linked statically against musl and compiled for the architecture's baseline CPU, so they do not depend on the Linux distribution; SKERNEL builds them with a pinned release of [Zig](https://ziglang.org), which it verifies and installs into its home on first use. As the Zig Software Foundation asks of tools, Zig is downloaded from the [community mirrors](https://ziglang.org/download/community-mirrors/) in random order, moving on from a mirror that is too slow, and from ziglang.org only when no mirror serves it.
 
@@ -100,12 +115,12 @@ A directory that exists and is not empty, a Composer that is not found or fails,
 ### run
 
 ```text
-run [-d|--working-dir=<dir>] [--php=<version>] [--watch] [--] [<arguments>...]
+run [-d|--working-dir=<dir>] [--] [<arguments>...]
 ```
 
-`run` builds the project as `build` does and then runs it from source with its managed PHP, in a separate process in the project directory. `<arguments>` go to the application, so `run swoole:start` starts its Swoole server; put options for the application after `--`. Without `--watch`, SKERNEL exits with the application's exit status.
+`run` builds the project as `build` does and then runs it from source with its managed PHP, in a separate process in the project directory. `<arguments>` go to the application, so `run swoole:start` starts its Swoole server; put options for the application after `--`. Unless the project watches, SKERNEL exits with the application's exit status.
 
-With `--watch`, SKERNEL restarts the application whenever a project file changes. It checks once a second for changes to PHP files, `.env` and `.env.*` files, and `composer.lock`, leaving out the vendor directory, `target/`, and directories whose name starts with a dot, so the logs and caches a running application writes do not restart it. It sends the application SIGTERM and then SIGKILL after 10 seconds, and builds the project again, including its Composer autoloader, before it restarts it. An application that exits on its own, or whose build fails, is started again by the next change.
+When the configuration file sets `run.watch` to `true`, SKERNEL restarts the application whenever a watched file changes. It checks once a second for changes to the files whose name matches a pattern of `run.watch-files`, with `*`, `?`, and `[...]`, by default PHP files, `.env` and `.env.*` files, `composer.json`, and `composer.lock`. It always leaves out the vendor directory, `target/`, and directories whose name starts with a dot, so the logs and caches a running application writes do not restart it. It sends the application SIGTERM and then SIGKILL after 10 seconds, and builds the project again, including its Composer autoloader, before it restarts it. An application that exits on its own, or whose build fails, is started again by the next change.
 
 SIGINT and SIGTERM stop the application before SKERNEL exits. The failures of `build`, and an application that cannot start, print a short message on STDERR and exit with status 1.
 
@@ -115,7 +130,7 @@ SIGINT and SIGTERM stop the application before SKERNEL exits. The failures of `b
 clean [-d|--working-dir=<dir>]
 ```
 
-`clean` removes the project's `target/` directory and its `<vendor>/.cache` build artifacts, and says what it removed. A package written elsewhere with `--output` or the `package.output` setting stays. The project's dependencies do not have to be installed.
+`clean` removes the project's `target/` directory and its `<vendor>/.cache` build artifacts, and says what it removed. A package written elsewhere through the `package.output` setting stays. The project's dependencies do not have to be installed.
 
 ### self-update
 
@@ -130,12 +145,12 @@ Running from source, a latest release that cannot be read or has no verified bin
 ### build
 
 ```text
-build [-d|--working-dir=<dir>] [--php=<version>]
+build [-d|--working-dir=<dir>]
 ```
 
 `build` generates the build artifacts that the application loads at start and writes them to the project's `<vendor>/.cache` directory, honouring its `config.vendor-dir`: the package records with their class maps, the attributes collected from those classes, a build stamp, and whatever the project's components write when the build publishes `SuperKernel\Event\ApplicationBuild`, such as the prepared proxies of `super-kernel/aop`. A SuperKernel application started without them, or with artifacts from an older `composer.lock`, stops with a message that names `skernel build`. The project must have its dependencies installed, including `super-kernel/metadata`, `super-kernel/context`, and `super-kernel/di`, and the build covers the packages of that installation.
 
-Before it generates anything, `build` regenerates the project's Composer autoloader with Composer's `dump-autoload` command, so the build and the application find a class added since `composer install` without a `composer dump-autoload` of your own. It uses the Composer that [`new`](#new) uses without `--composer`: the first working Composer 2 it finds, or else its own. Composer applies the project's own autoloader settings, such as `config.optimize-autoloader` and `config.classmap-authoritative` in `composer.json`, and the development autoload rules follow the installation: a project installed with `--no-dev` stays without them. Composer runs in its own process, and so do the project's `pre-autoload-dump` and `post-autoload-dump` scripts that it runs. When Composer cannot be provided or fails, the build stops before it generates anything and keeps the previous artifacts.
+Before it generates anything, `build` regenerates the project's Composer autoloader with Composer's `dump-autoload` command, so the build and the application find a class added since `composer install` without a `composer dump-autoload` of your own. It uses the Composer that the `composer` setting names, or else the first working Composer 2 it finds, or else its own, as [`new`](#new) does. Composer applies the project's own autoloader settings, such as `config.optimize-autoloader` and `config.classmap-authoritative` in `composer.json`, and the development autoload rules follow the installation: a project installed with `--no-dev` stays without them. Composer runs in its own process, and so do the project's `pre-autoload-dump` and `post-autoload-dump` scripts that it runs. When Composer cannot be provided or fails, the build stops before it generates anything and keeps the previous artifacts.
 
 The build runs in two separate processes of the managed PHP CLI, so SKERNEL never loads the project's code itself. The first loads the project's own autoloader, checks that the installed `super-kernel/metadata` uses the build protocol this SKERNEL generates, maps the classes of every installed package, collects the attributes of the classes that declare any, and publishes the records through the project's own `super-kernel/metadata` and `super-kernel/annotator`. A class that cannot be loaded or whose attribute cannot be created is skipped, even when loading it ends the process with a fatal error. The second process bootstraps the container from the records and then publishes `ApplicationBuild` through the project's PSR-14 event dispatcher, when the project has both the event and a dispatcher, without resolving or running the application.
 
@@ -153,24 +168,23 @@ On success STDOUT carries one line:
 Build artifacts written to /path/to/my-app/vendor/.cache.
 ```
 
-When the project's `super-kernel/metadata` uses another build protocol, the build stops before it writes anything and says which side to upgrade: SKERNEL, for example with `skernel self-update`, or the project's SuperKernel packages. A project without `super-kernel/metadata` predates SKERNEL-generated artifacts and needs SuperKernel 1.0.0-alpha.2 or later. That, a missing project or dependencies, an invalid configuration file or `--php` value, a managed PHP or Composer that cannot be provided, a Composer that fails to regenerate the autoloader, or a failed build prints a short message on STDERR and exits with status 1.
+When the project's `super-kernel/metadata` uses another build protocol, the build stops before it writes anything and says which side to upgrade: SKERNEL, for example with `skernel self-update`, or the project's SuperKernel packages. A project without `super-kernel/metadata` predates SKERNEL-generated artifacts and needs SuperKernel 1.0.0-alpha.2 or later. That, a missing project or dependencies, an invalid configuration file, a managed PHP or Composer that cannot be provided, a Composer that fails to regenerate the autoloader, or a failed build prints a short message on STDERR and exits with status 1.
 
 ### package
 
 ```text
-package [-d|--working-dir=<dir>] [--php=<version>] [--phar] [--dev] [--output=<path>]
-        [--composer=<binary>] [--runtime=<micro.sfx>]
+package [-d|--working-dir=<dir>]
 ```
 
-`package` turns the project into a standalone executable binary, or into a PHAR with `--phar`. It works on a temporary copy of the project, so the project itself is not changed:
+`package` turns the project into a standalone executable binary, or into a PHAR when `package.phar` is `true`. It works on a temporary copy of the project, so the project itself is not changed:
 
-1. It copies the project without its vendor directory, VCS metadata such as `.git`, its `target/` directory, and the `.env` and `.env.*` files in its root directory, which usually hold machine-local secrets; a packaged application reads its environment from the process environment.
-2. It installs the copy's dependencies from the project's `composer.lock` with the Composer that [`new`](#new) would use: the binary given with `--composer`, a path or a name looked up in `PATH`, or else the first working Composer 2 it finds, or else its own. Development dependencies are left out unless `--dev` is given. The project must have a `composer.lock`, but its own dependencies need not be installed. Composer does not check platform requirements against the PHP that runs it, because the managed PHP is the package's platform.
+1. It copies the project without its vendor directory, VCS metadata such as `.git`, its `target/` directory, its `skernel.json` and `skernel.json.dist`, and the `.env` and `.env.*` files in its root directory, which usually hold machine-local secrets; a packaged application reads its environment from the process environment.
+2. It installs the copy's dependencies from the project's `composer.lock` with the Composer that `build` uses: the one the `composer` setting names, or else the first working Composer 2 it finds, or else its own. Development dependencies are left out unless `package.dev` is `true`. The project must have a `composer.lock`, but its own dependencies need not be installed. Composer does not check platform requirements against the PHP that runs it, because the managed PHP is the package's platform.
 3. It runs `build` on the copy with the managed PHP of that installation and the same Composer.
 4. It archives the copy into a PHAR whose stub loads the copy's autoloader, obtains the application container, and runs the application, so no entry script is needed.
-5. It writes the managed micro runtime, or the file given with `--runtime`, followed by the PHAR to the output path, or only the PHAR with `--phar`, and makes the result executable. A micro runtime given with `--runtime` must report `cli` as `PHP_SAPI` for the result to start a Swoole server; with static-php-cli, build it with `--with-micro-fake-cli`.
+5. It writes the managed micro runtime, or the file that `package.runtime` names, followed by the PHAR to the output path, or only the PHAR when `package.phar` is `true`, and makes the result executable. A micro runtime named by `package.runtime` must report `cli` as `PHP_SAPI` for the result to start a Swoole server; with static-php-cli, build it with `--with-micro-fake-cli`.
 
-The output path is given with `--output`, or defaults to `target/<name>`, or `target/<name>.phar` with `--phar`, where `<name>` is the last segment of the root package's name, or the project directory's name when the package has none. Everything the copy's Composer, build, and archive processes write goes to STDERR, and on success STDOUT carries one line:
+The output path is `package.output`, by default `target/<name>`, or `target/<name>.phar` for a PHAR, where `<name>` is the last segment of the root package's name, or the project directory's name when the package has none. Everything the copy's Composer, build, and archive processes write goes to STDERR, and on success STDOUT carries one line:
 
 ```text
 Package written to /path/to/my-app/target/my-app.
