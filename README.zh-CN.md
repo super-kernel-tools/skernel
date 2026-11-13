@@ -7,14 +7,14 @@
 `super-kernel/skernel` 即 SKERNEL，是 SuperKernel 应用的命令行项目工具。它本身也是用 SuperKernel 构建的控制台应用，以独立的二进制文件发布。
 
 > [!NOTE]
-> SKERNEL 仍在积极开发中。目前提供 `new`、`run`、`build`、`package`、`clean` 和 `self-update` 命令。控制台另有 SKERNEL 自己的 `help` 和 `list` 命令、Symfony Console 的 `completion` 命令，以及 `--version` 选项。二进制文件通过本仓库的 [GitHub Releases](https://github.com/super-kernel/skernel/releases) 发布。
+> SKERNEL 仍在积极开发中。目前提供 `new`、`run`、`build`、`package`、`clean` 和 `self-update` 命令。控制台另有 SKERNEL 自己的 `help` 和 `list` 命令、Symfony Console 的 `completion` 命令，以及 `--version` 选项。二进制文件通过本仓库的 [GitHub Releases](https://github.com/super-kernel-tools/skernel/releases) 发布。
 
 ## 安装
 
-从[最新发布](https://github.com/super-kernel/skernel/releases/latest)下载适合你平台的二进制，平台有 `linux-x86_64`、`linux-aarch64`、`macos-aarch64` 和 `macos-x86_64`。它不需要 PHP。
+从[最新发布](https://github.com/super-kernel-tools/skernel/releases/latest)下载适合你平台的二进制，平台有 `linux-x86_64`、`linux-aarch64`、`macos-aarch64` 和 `macos-x86_64`。它不需要 PHP。
 
 ```bash
-curl -fsSL -o skernel https://github.com/super-kernel/skernel/releases/latest/download/skernel-linux-x86_64
+curl -fsSL -o skernel https://github.com/super-kernel-tools/skernel/releases/latest/download/skernel-linux-x86_64
 chmod +x skernel
 ./skernel --version
 ```
@@ -35,7 +35,7 @@ SKERNEL 把 WARNING 及以上级别的日志（包括框架的异常报告）写
 
 ```json
 {
-    "$schema": "https://raw.githubusercontent.com/super-kernel/skernel/main/skernel.schema.json",
+    "$schema": "https://raw.githubusercontent.com/super-kernel-tools/skernel/main/skernel.schema.json",
     "php": "8.4",
     "composer": "composer",
     "run": {
@@ -138,7 +138,7 @@ clean [-d|--working-dir=<dir>]
 self-update
 ```
 
-`self-update` 把独立的 SKERNEL 替换为[最新 GitHub Release](https://github.com/super-kernel/skernel/releases/latest) 中名为 `skernel-<platform>` 的二进制，例如 `skernel-linux-x86_64`。下载内容按 GitHub 报告的 SHA-256 摘要校验，二进制保留原有权限。SKERNEL 已经是该版本时不会下载；其他任何版本都会被替换。
+`self-update` 把独立的 SKERNEL 替换为[最新 GitHub Release](https://github.com/super-kernel-tools/skernel/releases/latest) 中名为 `skernel-<platform>` 的二进制，例如 `skernel-linux-x86_64`。下载内容按 GitHub 报告的 SHA-256 摘要校验，二进制保留原有权限。SKERNEL 已经是该版本时不会下载；其他任何版本都会被替换。
 
 从源码运行、无法读取最新 Release 或其中没有当前平台可校验的二进制、无法替换二进制时，会在 STDERR 上打印一条简短的提示，退出码为 1。
 
@@ -194,9 +194,9 @@ Package written to /path/to/my-app/target/my-app.
 
 ## 发布
 
-推送一个符合 [SemVer 2.0](https://semver.org) 的标签（例如 `1.2.3` 或 `1.3.0-rc.1`，不带 `v` 前缀）就会发布一个 [GitHub Release](https://github.com/super-kernel/skernel/releases)，其中包含 `linux-x86_64`、`linux-aarch64`、`macos-aarch64` 和 `macos-x86_64` 各一个二进制。发布之前，每个二进制都要通过创建、打包并运行一个项目的检查。其他标签会失败。
+推送一个符合 [SemVer 2.0](https://semver.org) 的标签（例如 `1.2.3` 或 `1.3.0-rc.1`，不带 `v` 前缀）就会发布一个 [GitHub Release](https://github.com/super-kernel-tools/skernel/releases)，其中包含 `linux-x86_64`、`linux-aarch64`、`macos-aarch64` 和 `macos-x86_64` 各一个二进制。发布之前，每个二进制都要通过创建、打包并运行一个项目的检查。其他标签会失败。
 
-最新的标签始终是[最新发布](https://github.com/super-kernel/skernel/releases/latest)，`self-update` 安装的就是它，无论版本号如何。SKERNEL 不维护旧版本线，也不支持退回旧版本。
+最新的标签始终是[最新发布](https://github.com/super-kernel-tools/skernel/releases/latest)，`self-update` 安装的就是它，无论版本号如何。SKERNEL 不维护旧版本线，也不支持退回旧版本。
 
 ## 环境要求
 
@@ -208,7 +208,7 @@ Package written to /path/to/my-app/target/my-app.
 要开发 SKERNEL 本身，请从本仓库的克隆中运行它。每次从源码启动时，SKERNEL 都会像 `build` 为项目所做的那样（但不使用 Composer），先在自己的 `vendor/.cache` 中生成自己的构建产物，所以对 SKERNEL 源码的修改在下次启动时生效；同一个克隆的两次启动在其中一次生成期间会互相等待。SKERNEL 自己的 autoloader 是权威类映射，所以给 SKERNEL 新增类之后，请运行 `composer dump-autoload`。SKERNEL 可以在任意目录中启动，处理当前目录中的项目，或 `-d` 指定的目录中的项目：
 
 ```bash
-git clone https://github.com/super-kernel/skernel.git
+git clone https://github.com/super-kernel-tools/skernel.git
 cd skernel
 composer install --no-dev
 php bin/bootstrap.php list

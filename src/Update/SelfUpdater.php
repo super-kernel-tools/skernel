@@ -32,7 +32,7 @@ use function unlink;
  */
 final class SelfUpdater
 {
-    private const string LATEST_RELEASE = 'https://api.github.com/repos/super-kernel/skernel/releases/latest';
+    private const string LATEST_RELEASE = 'https://api.github.com/repos/super-kernel-tools/skernel/releases/latest';
 
     private const string DIGEST_PREFIX = 'sha256:';
 

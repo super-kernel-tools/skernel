@@ -7,14 +7,14 @@
 `super-kernel/skernel` is SKERNEL, the command-line project tool for SuperKernel applications. It is itself built as a SuperKernel console application and is distributed as a standalone binary.
 
 > [!NOTE]
-> SKERNEL is under active development. It provides the `new`, `run`, `build`, `package`, `clean`, and `self-update` commands. Its console also offers SKERNEL's `help` and `list` commands, Symfony Console's `completion` command, and the `--version` option. Binaries are published through this repository's [GitHub Releases](https://github.com/super-kernel/skernel/releases).
+> SKERNEL is under active development. It provides the `new`, `run`, `build`, `package`, `clean`, and `self-update` commands. Its console also offers SKERNEL's `help` and `list` commands, Symfony Console's `completion` command, and the `--version` option. Binaries are published through this repository's [GitHub Releases](https://github.com/super-kernel-tools/skernel/releases).
 
 ## Installation
 
-Download the binary for your platform, one of `linux-x86_64`, `linux-aarch64`, `macos-aarch64`, and `macos-x86_64`, from the [latest release](https://github.com/super-kernel/skernel/releases/latest). It needs no PHP.
+Download the binary for your platform, one of `linux-x86_64`, `linux-aarch64`, `macos-aarch64`, and `macos-x86_64`, from the [latest release](https://github.com/super-kernel-tools/skernel/releases/latest). It needs no PHP.
 
 ```bash
-curl -fsSL -o skernel https://github.com/super-kernel/skernel/releases/latest/download/skernel-linux-x86_64
+curl -fsSL -o skernel https://github.com/super-kernel-tools/skernel/releases/latest/download/skernel-linux-x86_64
 chmod +x skernel
 ./skernel --version
 ```
@@ -35,7 +35,7 @@ A project's settings for SKERNEL's commands are read from `skernel.json` in the 
 
 ```json
 {
-    "$schema": "https://raw.githubusercontent.com/super-kernel/skernel/main/skernel.schema.json",
+    "$schema": "https://raw.githubusercontent.com/super-kernel-tools/skernel/main/skernel.schema.json",
     "php": "8.4",
     "composer": "composer",
     "run": {
@@ -138,7 +138,7 @@ clean [-d|--working-dir=<dir>]
 self-update
 ```
 
-`self-update` replaces a standalone SKERNEL with the binary of the [latest GitHub Release](https://github.com/super-kernel/skernel/releases/latest), named `skernel-<platform>`, such as `skernel-linux-x86_64`. The download is verified against the SHA-256 digest that GitHub reports for it, and the binary keeps its permissions. When SKERNEL already has that version, nothing is downloaded; any other version is replaced.
+`self-update` replaces a standalone SKERNEL with the binary of the [latest GitHub Release](https://github.com/super-kernel-tools/skernel/releases/latest), named `skernel-<platform>`, such as `skernel-linux-x86_64`. The download is verified against the SHA-256 digest that GitHub reports for it, and the binary keeps its permissions. When SKERNEL already has that version, nothing is downloaded; any other version is replaced.
 
 Running from source, a latest release that cannot be read or has no verified binary for the platform, or a binary that cannot be replaced prints a short message on STDERR and exits with status 1.
 
@@ -194,9 +194,9 @@ A missing `composer.lock`, a runtime file that is not found, a failed installati
 
 ## Releases
 
-Pushing a tag that is a [SemVer 2.0](https://semver.org) version, such as `1.2.3` or `1.3.0-rc.1`, without a `v` prefix, publishes a [GitHub Release](https://github.com/super-kernel/skernel/releases) with a binary for each of `linux-x86_64`, `linux-aarch64`, `macos-aarch64`, and `macos-x86_64`. Each binary is checked by creating, packaging, and serving a project before anything is published. Any other tag fails.
+Pushing a tag that is a [SemVer 2.0](https://semver.org) version, such as `1.2.3` or `1.3.0-rc.1`, without a `v` prefix, publishes a [GitHub Release](https://github.com/super-kernel-tools/skernel/releases) with a binary for each of `linux-x86_64`, `linux-aarch64`, `macos-aarch64`, and `macos-x86_64`. Each binary is checked by creating, packaging, and serving a project before anything is published. Any other tag fails.
 
-The newest tag is always the [latest release](https://github.com/super-kernel/skernel/releases/latest), which `self-update` installs, whatever its version says. SKERNEL keeps no older version line and does not support moving back to an older version.
+The newest tag is always the [latest release](https://github.com/super-kernel-tools/skernel/releases/latest), which `self-update` installs, whatever its version says. SKERNEL keeps no older version line and does not support moving back to an older version.
 
 ## Requirements
 
@@ -208,7 +208,7 @@ The newest tag is always the [latest release](https://github.com/super-kernel/sk
 To work on SKERNEL itself, run it from a clone of this repository. Every start from source first generates SKERNEL's own build artifacts in its `vendor/.cache`, the way `build` does for a project but without Composer, so a change to SKERNEL's sources takes effect at the next start; two starts from the same clone wait for each other while one of them generates. SKERNEL's own autoloader is authoritative, so run `composer dump-autoload` after adding a class to SKERNEL. SKERNEL can be started from any directory and works on the project in the current directory, or in the one given with `-d`:
 
 ```bash
-git clone https://github.com/super-kernel/skernel.git
+git clone https://github.com/super-kernel-tools/skernel.git
 cd skernel
 composer install --no-dev
 php bin/bootstrap.php list
