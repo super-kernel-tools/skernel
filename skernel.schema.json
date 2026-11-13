@@ -1,6 +1,6 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "https://raw.githubusercontent.com/super-kernel/skernel/main/skernel.schema.json",
+    "$id": "https://raw.githubusercontent.com/super-kernel-tools/skernel/main/skernel.schema.json",
     "title": "SKERNEL configuration",
     "description": "The settings of a project for SKERNEL's commands, read from skernel.json or skernel.json.dist in the project root. A setting left out keeps its default.",
     "type": "object",
