@@ -37,6 +37,7 @@ A project's settings for SKERNEL's commands are read from `skernel.json` in the 
 {
     "$schema": "https://raw.githubusercontent.com/super-kernel-tools/skernel/main/skernel.schema.json",
     "php": "8.4",
+    "prebuilt": true,
     "composer": "composer",
     "run": {
         "watch": true,
@@ -54,6 +55,7 @@ A project's settings for SKERNEL's commands are read from `skernel.json` in the 
 | Key | Used by | Default |
 | --- | --- | --- |
 | `php` | `build`, `run`, `package` | the latest PHP release that the root package's `require.php` allows, see [Managed PHP](#managed-php) |
+| `prebuilt` | `build`, `run`, `package` | `true`: a managed PHP that is not in the SKERNEL home yet is downloaded prebuilt when one is published, see [Managed PHP](#managed-php) |
 | `composer` | `build`, `run`, `package` | the first working Composer 2 SKERNEL finds, or else its own, as for [`new`](#new) |
 | `run.watch` | `run` | `false` |
 | `run.watch-files` | `run` | `["*.php", ".env", ".env.*", "composer.json", "composer.lock"]` |
@@ -72,6 +74,20 @@ The build contains the PHP extensions that the project's installation requires t
 
 When the installation limits the version of `ext-swoole` or `ext-redis`, through a requirement or a conflict, SKERNEL builds the latest stable PECL release that it accepts. Any other extension is built at the version static-php-cli selects, and a build that ends up with an extension version the installation does not accept fails instead of being used.
 
+Before SKERNEL builds a runtime, it looks for the same build in the releases of [super-kernel-tools/runtimes](https://github.com/super-kernel-tools/runtimes), which publishes the runtimes of a project that `new` creates, with and without its development requirements and with and without `super-kernel/redis`, and the PHP of SKERNEL's own Composer. A prebuilt runtime is used only when it has exactly the platform, PHP version, extensions, extension versions, toolchain, and build options of the build SKERNEL would do:
+
+```text
+Downloading the prebuilt PHP 8.4.27 runtime for linux-x86_64.
+```
+
+SKERNEL installs the download only when the archive matches its published SHA-256 digest, its manifest names what the project needs, both binaries match the digests in the manifest, and its PHP runs on the machine and reports extension versions that the installation accepts; otherwise the command stops. When no such runtime is published, or the releases cannot be reached, SKERNEL builds the runtime:
+
+```text
+No prebuilt PHP 8.4.27 runtime for linux-x86_64 with the extensions imagick, phar, tokenizer was found; building it with static-php-cli.
+```
+
+With `prebuilt` set to `false`, SKERNEL builds every runtime on the machine and never contacts that repository.
+
 Everything SKERNEL downloads and builds lives in its home directory, `~/.skernel`, or the directory given by the `SKERNEL_HOME` environment variable:
 
 ```text
@@ -88,7 +104,7 @@ Everything SKERNEL downloads and builds lives in its home directory, `~/.skernel
 └── work/<job>/                  sources and build output of one build
 ```
 
-The first build of a runtime needs network access and the build tools that static-php-cli requires, such as a C compiler, `perl`, `re2c`, `autoconf`, `automake`, `cmake`, `libtool`, and `gettext`. SKERNEL never installs system packages; when a build fails, static-php-cli's output on STDERR names what is missing, and the job's directory is kept for inspection. The static-php-cli binary and Zig are verified against their pinned SHA-256 digests before they run, so a mirror can neither alter nor replace Zig. php.net and PECL answers and the Zig mirror list are cached for a day and reused when those sites cannot be reached.
+Downloading a prebuilt runtime needs only network access. Building a runtime needs network access and the build tools that static-php-cli requires, such as a C compiler, `perl`, `re2c`, `autoconf`, `automake`, `cmake`, `libtool`, and `gettext`. SKERNEL never installs system packages; when a build fails, static-php-cli's output on STDERR names what is missing, and the job's directory is kept for inspection. The static-php-cli binary and Zig are verified against their pinned SHA-256 digests before they run, so a mirror can neither alter nor replace Zig. php.net and PECL answers and the Zig mirror list are cached for a day and reused when those sites cannot be reached.
 
 Downloads go through the proxy that the environment names, as with curl: `https_proxy` or `HTTPS_PROXY` for HTTPS, `http_proxy` or `HTTP_PROXY` for HTTP, and `no_proxy` or `NO_PROXY` for the comma-separated hosts, with their subdomains, that bypass it. static-php-cli and Composer, which SKERNEL runs, read the same variables.
 
@@ -104,7 +120,7 @@ new <directory> [--composer=<binary>]
 
 A released SKERNEL creates the skeleton at exactly its own version, so SKERNEL 1.0.0-alpha.3 creates `super-kernel/skeleton` 1.0.0-alpha.3; SKERNEL run from source, which has no version, creates it from the development line. The version only selects the template: the template has no `composer.lock`, so Composer resolves its requirements when it creates the project.
 
-With `--composer`, that binary is used. Otherwise SKERNEL uses the first working Composer 2 it finds: `composer` or `composer.phar` in `PATH`, then `~/.local/bin/composer`, `~/bin/composer`, `~/.config/composer/vendor/bin/composer`, and `~/.composer/vendor/bin/composer`. When there is none, it downloads a pinned Composer release, verified against its SHA-256 digest, into its home directory and runs it with a managed PHP, which it builds the first time.
+With `--composer`, that binary is used. Otherwise SKERNEL uses the first working Composer 2 it finds: `composer` or `composer.phar` in `PATH`, then `~/.local/bin/composer`, `~/bin/composer`, `~/.config/composer/vendor/bin/composer`, and `~/.composer/vendor/bin/composer`. When there is none, it downloads a pinned Composer release, verified against its SHA-256 digest, into its home directory and runs it with a managed PHP, which it downloads prebuilt or builds the first time, as described under [Managed PHP](#managed-php). No project and so no configuration file exists yet, so a `prebuilt` setting cannot apply here.
 
 ```text
 Project created in /path/to/my-app.
@@ -201,7 +217,7 @@ The newest tag is always the [latest release](https://github.com/super-kernel-to
 ## Requirements
 
 - PHP `>=8.4.27 <8.5` with the `openssl`, `pcntl`, `phar`, `tokenizer`, and `zlib` extensions, only to run SKERNEL from source; Composer checks the required PHP extensions during installation.
-- Network access and static-php-cli's build tools the first time a managed PHP is built, as described under [Managed PHP](#managed-php).
+- Network access the first time a managed PHP is needed, and static-php-cli's build tools when it is built on the machine instead of downloaded prebuilt, as described under [Managed PHP](#managed-php).
 
 ## Running from source
 

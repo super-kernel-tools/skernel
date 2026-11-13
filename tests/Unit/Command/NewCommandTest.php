@@ -113,6 +113,7 @@ final class NewCommandTest extends ToolchainTestCase
                 new Home(),
                 new StaticPhpCli(new Home(), new ZigMirrors(new DailyCache(new Home()))),
                 new ExtensionVersions(new DailyCache(new Home())),
+                $this->prebuiltRuntime(),
             ),
         )));
         $command->setName('new');

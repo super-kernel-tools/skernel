@@ -39,6 +39,7 @@ final readonly class ConfigurationLoader
             $settings = Setting::object(JsonFile::decode($projectDirectory . '/' . $file, false), $file, '', [
                 '$schema',
                 'php',
+                'prebuilt',
                 'composer',
                 'run',
                 'package',
@@ -62,6 +63,7 @@ final readonly class ConfigurationLoader
 
             return new ProjectConfiguration(
                 Setting::version($settings['php'] ?? null, $file, 'php'),
+                Setting::boolean($settings['prebuilt'] ?? null, $file, 'prebuilt') ?? true,
                 null !== $composer && str_contains($composer, '/')
                     ? AbsolutePath::resolve($composer, $projectDirectory)
                     : $composer,

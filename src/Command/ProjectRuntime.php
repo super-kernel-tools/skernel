@@ -46,8 +46,8 @@ final readonly class ProjectRuntime
         return [
             $project,
             $configuration,
-            $this->managedPhp->runtime($project, $configuration->php, $errorOutput),
-            $this->composerLocator->command($configuration->composer, $errorOutput),
+            $this->managedPhp->runtime($project, $configuration->php, $configuration->prebuilt, $errorOutput),
+            $this->composerLocator->command($configuration->composer, $configuration->prebuilt, $errorOutput),
         ];
     }
 }

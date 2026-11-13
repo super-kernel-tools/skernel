@@ -95,7 +95,7 @@ final class PackageCommand extends Command
                 $project->directory . '/skernel.json.dist',
                 $target,
             ]);
-            $composer = $this->composerLocator->command($settings->composer, $errorOutput);
+            $composer = $this->composerLocator->command($settings->composer, $settings->prebuilt, $errorOutput);
             $status = $this->dependencyInstaller->install(
                 $staging . '/project',
                 $composer,
@@ -111,7 +111,7 @@ final class PackageCommand extends Command
             }
 
             $staged = $this->projectLocator->locate($staging . '/project');
-            $managed = $this->managedPhp->runtime($staged, $settings->php, $errorOutput);
+            $managed = $this->managedPhp->runtime($staged, $settings->php, $settings->prebuilt, $errorOutput);
             $this->projectBuilder->build(
                 $staged,
                 $managed->php,

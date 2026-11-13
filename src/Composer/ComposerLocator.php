@@ -42,12 +42,14 @@ final readonly class ComposerLocator
 
     /**
      * @param string|null $requested A path or a name looked up in PATH, which is used without further checks
+     * @param bool        $prebuilt  Whether the PHP of SKERNEL's own Composer may be installed prebuilt instead of
+     *                               being built here
      *
      * @return non-empty-list<string> The command that runs Composer
      *
      * @throws RuntimeException When the requested Composer is not found, or SKERNEL's own cannot be provided
      */
-    public function command(?string $requested, OutputInterface $output): array
+    public function command(?string $requested, bool $prebuilt, OutputInterface $output): array
     {
         if (null !== $requested) {
             return [
@@ -98,6 +100,6 @@ final readonly class ComposerLocator
             $this->managedComposer->version(),
         ), OutputInterface::OUTPUT_RAW);
 
-        return $this->managedComposer->command($output);
+        return $this->managedComposer->command($prebuilt, $output);
     }
 }

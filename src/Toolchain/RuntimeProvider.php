@@ -30,9 +30,9 @@ use const JSON_UNESCAPED_SLASHES;
 /**
  * Provides the managed static PHP CLI and micro runtime of a PHP version and extension set.
  *
- * A missing runtime is built with static-php-cli in its own job below `work/` and published to
- * `runtimes/<platform>/php-<version>/<extension-hash>/` by atomic rename; the job is removed after success and kept
- * for inspection after a failure.
+ * A missing runtime is installed prebuilt when the project allows it and one is published. Otherwise it is built with
+ * static-php-cli in its own job below `work/` and published to `runtimes/<platform>/php-<version>/<extension-hash>/`
+ * by atomic rename; the job is removed after success and kept for inspection after a failure.
  */
 final readonly class RuntimeProvider
 {
@@ -50,18 +50,25 @@ final readonly class RuntimeProvider
         private Home              $home,
         private StaticPhpCli      $staticPhpCli,
         private ExtensionVersions $extensionVersions,
+        private PrebuiltRuntime   $prebuiltRuntime,
     )
     {
     }
 
     /**
-     * @param string $version An exact PHP version
+     * @param string $version  An exact PHP version
+     * @param bool   $prebuilt Whether a missing runtime may be installed prebuilt instead of being built here
      *
-     * @throws RuntimeException When no accepted extension version can be selected, static-php-cli cannot download or
-     *                          build the runtime, it has an extension version the project does not accept, or it
-     *                          cannot be published
+     * @throws RuntimeException When no accepted extension version can be selected, a published prebuilt runtime
+     *                          cannot be installed, static-php-cli cannot download or build the runtime, it has an
+     *                          extension version the project does not accept, or it cannot be published
      */
-    public function provide(string $version, ExtensionRequirements $extensions, OutputInterface $output): Runtime
+    public function provide(
+        string                $version,
+        ExtensionRequirements $extensions,
+        bool                  $prebuilt,
+        OutputInterface       $output,
+    ): Runtime
     {
         $home = $this->home->directory();
         $platform = Platform::current();
@@ -72,6 +79,19 @@ final readonly class RuntimeProvider
 
         if (is_file($directory . '/manifest.json')) {
             return $runtime;
+        }
+
+        if ($prebuilt) {
+            if ($this->prebuiltRuntime->install($runtime, $extensions, $output)) {
+                return $runtime;
+            }
+
+            $output->writeln(sprintf(
+                'No prebuilt PHP %s runtime for %s with the extensions %s was found; building it with static-php-cli.',
+                $version,
+                $platform,
+                implode(', ', $extensions->names),
+            ), OutputInterface::OUTPUT_RAW);
         }
 
         $sources = [];

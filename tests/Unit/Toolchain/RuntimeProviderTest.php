@@ -62,11 +62,75 @@ final class RuntimeProviderTest extends ToolchainTestCase
             new Runtime('8.4.27', $directory . '/php', $directory . '/micro.sfx'),
             $provider->provide('8.4.27', new ExtensionRequirements([
                 'phar',
-        ]), $output),
+        ]), false, $output),
         );
         self::assertSame('', $output->fetch());
         self::assertDirectoryDoesNotExist($this->home . '/tools');
         self::assertDirectoryDoesNotExist($this->home . '/work');
+    }
+
+    public function testInstallsAPublishedPrebuiltRuntimeInsteadOfBuildingIt(): void
+    {
+        $provider = $this->provider();
+        $extensions = new ExtensionRequirements([
+            'phar',
+        ]);
+        $directory = $provider->directory('8.4.27', $extensions);
+        $this->publishPrebuilt(new Runtime('8.4.27', $directory . '/php', $directory . '/micro.sfx'), [
+            'phar',
+        ]);
+        $output = new BufferedOutput();
+
+        $runtime = $provider->provide('8.4.27', $extensions, true, $output);
+
+        self::assertSame(
+            'Downloading the prebuilt PHP 8.4.27 runtime for ' . Platform::current() . ".\n",
+            $output->fetch(),
+        );
+        self::assertFileExists($runtime->php);
+        self::assertFileExists($directory . '/manifest.json');
+        self::assertDirectoryDoesNotExist($this->home . '/tools');
+    }
+
+    #[RequiresOperatingSystemFamily('Linux')]
+    public function testBuildsARuntimeThatIsNotPublishedPrebuilt(): void
+    {
+        $this->build('6.2.4');
+        $output = new BufferedOutput();
+
+        $runtime = $this->provider()->provide('8.4.27', new ExtensionRequirements([
+            'phar',
+        ]), true, $output);
+
+        self::assertStringStartsWith(
+            'No prebuilt PHP 8.4.27 runtime for ' . Platform::current() . ' with the extensions phar was found; '
+            . "building it with static-php-cli.\n",
+            $output->fetch(),
+        );
+        self::assertFileExists($this->home . '/spc.log');
+        self::assertFileExists($runtime->micro);
+    }
+
+    #[RequiresOperatingSystemFamily('Linux')]
+    public function testBuildsWithoutLookingForAPrebuiltRuntimeWhenTheProjectForbidsIt(): void
+    {
+        $this->build('6.2.4');
+        $provider = $this->provider();
+        $extensions = new ExtensionRequirements([
+            'phar',
+        ]);
+        $directory = $provider->directory('8.4.27', $extensions);
+        // A manifest that could not be installed proves that the published runtime is never read.
+        $this->publishPrebuilt(new Runtime('8.4.27', $directory . '/php', $directory . '/micro.sfx'), [
+            'swoole',
+        ]);
+        $output = new BufferedOutput();
+
+        $provider->provide('8.4.27', $extensions, false, $output);
+
+        self::assertStringNotContainsString('prebuilt', $output->fetch());
+        self::assertFileExists($this->home . '/spc.log');
+        self::assertFileExists($directory . '/manifest.json');
     }
 
     #[RequiresOperatingSystemFamily('Linux')]
@@ -82,7 +146,7 @@ final class RuntimeProviderTest extends ToolchainTestCase
 
         $runtime = $provider->provide('8.4.27', new ExtensionRequirements([
             'phar',
-        ]), new BufferedOutput());
+        ]), false, new BufferedOutput());
 
         self::assertSame([
             'download --with-php=8.4 --for-extensions=phar '
@@ -97,7 +161,7 @@ final class RuntimeProviderTest extends ToolchainTestCase
     public function testBuildsTheSelectedExtensionVersionAndRecordsIt(): void
     {
         $this->build('6.2.4');
-        $runtime = $this->provider()->provide('8.4.27', $this->swoole(), new BufferedOutput());
+        $runtime = $this->provider()->provide('8.4.27', $this->swoole(), false, new BufferedOutput());
 
         self::assertSame([
             'download --with-php=8.4 --for-extensions=swoole '
@@ -118,7 +182,7 @@ final class RuntimeProviderTest extends ToolchainTestCase
         $this->build('6.3.0');
 
         try {
-            $this->provider()->provide('8.4.27', $this->swoole(), new BufferedOutput());
+            $this->provider()->provide('8.4.27', $this->swoole(), false, new BufferedOutput());
             self::fail('A runtime with an extension version that the project does not accept must not be published.');
         } catch (RuntimeException $exception) {
             self::assertSame(
@@ -218,6 +282,7 @@ final class RuntimeProviderTest extends ToolchainTestCase
             new Home(),
             new StaticPhpCli(new Home(), new ZigMirrors(new DailyCache(new Home()))),
             new ExtensionVersions(new DailyCache(new Home())),
+            $this->prebuiltRuntime(),
         );
     }
 }

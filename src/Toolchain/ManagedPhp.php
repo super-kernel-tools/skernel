@@ -9,8 +9,8 @@ use Symfony\Component\Console\Exception\RuntimeException;
 use Symfony\Component\Console\Output\OutputInterface;
 
 /**
- * Provides the managed PHP runtime that runs and packages a project: the requested or required version, built with
- * the extensions that the project's installation requires.
+ * Provides the managed PHP runtime that runs and packages a project: the requested or required version, with the
+ * extensions that the project's installation requires.
  */
 final readonly class ManagedPhp
 {
@@ -20,14 +20,16 @@ final readonly class ManagedPhp
 
     /**
      * @param string|null $requested A version such as 8.4 or 8.4.27, or null for the project's PHP requirement
+     * @param bool        $prebuilt  Whether a missing runtime may be installed prebuilt instead of being built here
      *
      * @throws RuntimeException When the version cannot be resolved or the runtime cannot be provided
      */
-    public function runtime(Project $project, ?string $requested, OutputInterface $output): Runtime
+    public function runtime(Project $project, ?string $requested, bool $prebuilt, OutputInterface $output): Runtime
     {
         return $this->runtimes->provide(
             $this->releases->resolve($requested, $project->phpRequirement),
             Extensions::required($project),
+            $prebuilt,
             $output,
         );
     }
