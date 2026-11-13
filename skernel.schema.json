@@ -20,6 +20,11 @@
                 "8.4.27"
             ]
         },
+        "prebuilt": {
+            "description": "Whether a managed PHP that is missing from the SKERNEL home may be downloaded prebuilt from the SKERNEL runtimes repository instead of being built on this machine; false always builds it here.",
+            "type": "boolean",
+            "default": true
+        },
         "composer": {
             "description": "The Composer that build, run, and package use: a path, relative to the project root when it contains a /, or a name looked up in PATH; by default the first working Composer 2 or else SKERNEL's own.",
             "type": "string",

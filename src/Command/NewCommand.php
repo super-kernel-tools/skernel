@@ -28,7 +28,7 @@ use function sprintf;
  *
  * A released SKERNEL creates the skeleton at exactly its own version; one without a version, such as SKERNEL run from
  * source, creates it from the development line. Platform requirements are not checked against the PHP that runs
- * Composer, because the project runs on its managed PHP, which `build`, `run`, and `package` build later.
+ * Composer, because the project runs on its managed PHP, which `build`, `run`, and `package` provide later.
  */
 #[AttributeCommand(name: 'new', description: 'Create a project from the SuperKernel skeleton')]
 final class NewCommand extends Command
@@ -71,8 +71,9 @@ final class NewCommand extends Command
         $errorOutput = $output instanceof ConsoleOutputInterface ? $output->getErrorOutput() : $output;
         $version = (string) $this->getApplication()?->getVersion();
         $released = '' !== $version && 'UNKNOWN' !== $version;
+        // No project exists yet whose configuration file could ask for a local build of SKERNEL's own Composer's PHP.
         $status = ProcessRunner::run([
-            ...$this->composerLocator->command($input->getOption('composer'), $errorOutput),
+            ...$this->composerLocator->command($input->getOption('composer'), true, $errorOutput),
             'create-project',
             self::SKELETON,
             $directory,

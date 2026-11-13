@@ -53,6 +53,7 @@ final class ConfigurationLoaderTest extends TestCase
 
         self::assertEquals(new ProjectConfiguration(), $configuration);
         self::assertNull($configuration->php);
+        self::assertTrue($configuration->prebuilt);
         self::assertNull($configuration->composer);
         self::assertFalse($configuration->run->watch);
         self::assertSame([
@@ -78,6 +79,7 @@ final class ConfigurationLoaderTest extends TestCase
             {
                 "$schema": "https://example.com/skernel.schema.json",
                 "php": "8.4",
+                "prebuilt": false,
                 "composer": "tools/composer",
                 "run": {
                     "watch": true,
@@ -94,6 +96,7 @@ final class ConfigurationLoaderTest extends TestCase
 
         self::assertEquals(new ProjectConfiguration(
             '8.4',
+            false,
             $this->directory . '/tools/composer',
             new RunConfiguration(true, [
                 '*.php',
@@ -191,6 +194,10 @@ final class ConfigurationLoaderTest extends TestCase
                 '{"php": 8.4}',
                 'skernel.json: "php" must be a PHP version such as 8.4 or 8.4.27.',
             ],
+            'string prebuilt' => [
+                '{"prebuilt": "no"}',
+                'skernel.json: "prebuilt" must be true or false.',
+            ],
             'string flag' => [
                 '{"package": {"dev": "yes"}}',
                 'skernel.json: "package.dev" must be true or false.',
@@ -235,6 +242,7 @@ final class ConfigurationLoaderTest extends TestCase
         self::assertSame([
             '$schema',
             'php',
+            'prebuilt',
             'composer',
             'run',
             'package',

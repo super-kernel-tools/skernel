@@ -14,6 +14,7 @@ use Src\Toolchain\DailyCache;
 use Src\Toolchain\ExtensionRequirements;
 use Src\Toolchain\ExtensionVersions;
 use Src\Toolchain\Home;
+use Src\Toolchain\PrebuiltRuntime;
 use Src\Toolchain\RuntimeProvider;
 use Src\Toolchain\StaticPhpCli;
 use Src\Toolchain\ZigMirrors;
@@ -147,6 +148,7 @@ final class PackageCommandTest extends TestCase
                 new Home(),
                 new StaticPhpCli(new Home(), new ZigMirrors(new DailyCache(new Home()))),
                 new ExtensionVersions(new DailyCache(new Home())),
+                new PrebuiltRuntime(new Home(), new ExtensionVersions(new DailyCache(new Home()))),
             )->directory($this->version, new ExtensionRequirements([
                 'phar',
                 'tokenizer',

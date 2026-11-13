@@ -12,6 +12,7 @@ use Src\Toolchain\DailyCache;
 use Src\Toolchain\Extensions;
 use Src\Toolchain\ExtensionVersions;
 use Src\Toolchain\Home;
+use Src\Toolchain\PrebuiltRuntime;
 use Src\Toolchain\RuntimeProvider;
 use Src\Toolchain\StaticPhpCli;
 use Src\Toolchain\ZigMirrors;
@@ -138,6 +139,7 @@ final class BootstrapTest extends TestCase
                 new Home(),
                 new StaticPhpCli(new Home(), new ZigMirrors(new DailyCache(new Home()))),
                 new ExtensionVersions(new DailyCache(new Home())),
+                new PrebuiltRuntime(new Home(), new ExtensionVersions(new DailyCache(new Home()))),
             )->directory(
                 $version,
                 Extensions::required(new ProjectLocator()->locate($root)),

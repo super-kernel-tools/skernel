@@ -65,7 +65,7 @@ final class ComposerLocatorTest extends ToolchainTestCase
 
         self::assertSame([
             $this->home . '/path/composer',
-        ], $this->locator()->command(null, $output));
+        ], $this->locator()->command(null, false, $output));
         self::assertSame('', $output->fetch());
     }
 
@@ -75,7 +75,7 @@ final class ComposerLocatorTest extends ToolchainTestCase
 
         self::assertSame([
             $this->home . '/path/composer.phar',
-        ], $this->locator()->command(null, new BufferedOutput()));
+        ], $this->locator()->command(null, false, new BufferedOutput()));
     }
 
     public function testFallsBackToTheUsersComposerWhenThePathHasNone(): void
@@ -84,7 +84,7 @@ final class ComposerLocatorTest extends ToolchainTestCase
 
         self::assertSame([
             $this->home . '/user/.config/composer/vendor/bin/composer',
-        ], $this->locator()->command(null, new BufferedOutput()));
+        ], $this->locator()->command(null, false, new BufferedOutput()));
     }
 
     public function testSkipsAnOldOrBrokenComposer(): void
@@ -95,7 +95,7 @@ final class ComposerLocatorTest extends ToolchainTestCase
 
         self::assertSame([
             $this->home . '/user/bin/composer',
-        ], $this->locator()->command(null, new BufferedOutput()));
+        ], $this->locator()->command(null, false, new BufferedOutput()));
     }
 
     public function testUsesTheRequestedComposerWithoutCheckingIt(): void
@@ -105,7 +105,7 @@ final class ComposerLocatorTest extends ToolchainTestCase
 
         self::assertSame([
             $this->home . '/custom',
-        ], $this->locator()->command($this->home . '/custom', new BufferedOutput()));
+        ], $this->locator()->command($this->home . '/custom', false, new BufferedOutput()));
     }
 
     public function testRejectsARequestedComposerThatIsNotFound(): void
@@ -113,7 +113,7 @@ final class ComposerLocatorTest extends ToolchainTestCase
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessageIs('The Composer binary missing was not found.');
 
-        $this->locator()->command('missing', new BufferedOutput());
+        $this->locator()->command('missing', false, new BufferedOutput());
     }
 
     public function testUsesItsOwnComposerWhenNoneIsFound(): void
@@ -147,7 +147,7 @@ final class ComposerLocatorTest extends ToolchainTestCase
         self::assertSame([
             $runtime . '/php',
             $composer,
-        ], $this->locator()->command(null, $output));
+        ], $this->locator()->command(null, false, $output));
         self::assertSame(
             "No working Composer 2 was found; using Composer 2.11.1 in the SKERNEL home.\n",
             $output->fetch(),
@@ -169,6 +169,7 @@ final class ComposerLocatorTest extends ToolchainTestCase
             new Home(),
             new StaticPhpCli(new Home(), new ZigMirrors(new DailyCache(new Home()))),
             new ExtensionVersions(new DailyCache(new Home())),
+            $this->prebuiltRuntime(),
         );
     }
 }

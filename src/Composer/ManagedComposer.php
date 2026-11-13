@@ -20,7 +20,7 @@ use function sprintf;
 /**
  * Provides SKERNEL's own Composer: a pinned, verified composer.phar in the SKERNEL home, run with a managed PHP.
  *
- * The PHP is built on first use, because a standalone SKERNEL cannot run a PHAR other than itself.
+ * The PHP is provided on first use, because a standalone SKERNEL cannot run a PHAR other than itself.
  */
 final readonly class ManagedComposer
 {
@@ -58,11 +58,13 @@ final readonly class ManagedComposer
     }
 
     /**
+     * @param bool $prebuilt Whether a missing PHP may be installed prebuilt instead of being built here
+     *
      * @return non-empty-list<string> The command that runs Composer
      *
      * @throws RuntimeException When Composer cannot be downloaded and verified, or its PHP cannot be provided
      */
-    public function command(OutputInterface $output): array
+    public function command(bool $prebuilt, OutputInterface $output): array
     {
         $composer = $this->home->directory() . '/tools/composer/' . self::VERSION . '/composer.phar';
 
@@ -75,6 +77,7 @@ final readonly class ManagedComposer
             $this->runtimes->provide(
                 $this->releases->resolve(self::PHP, null),
                 new ExtensionRequirements(self::EXTENSIONS),
+                $prebuilt,
                 $output,
             )->php,
             $composer,

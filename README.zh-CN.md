@@ -37,6 +37,7 @@ SKERNEL 把 WARNING 及以上级别的日志（包括框架的异常报告）写
 {
     "$schema": "https://raw.githubusercontent.com/super-kernel-tools/skernel/main/skernel.schema.json",
     "php": "8.4",
+    "prebuilt": true,
     "composer": "composer",
     "run": {
         "watch": true,
@@ -54,6 +55,7 @@ SKERNEL 把 WARNING 及以上级别的日志（包括框架的异常报告）写
 | 键 | 使用者 | 默认值 |
 | --- | --- | --- |
 | `php` | `build`、`run`、`package` | 根包 `require.php` 允许的最新 PHP 版本，见[受管 PHP](#受管-php) |
+| `prebuilt` | `build`、`run`、`package` | `true`：SKERNEL 主目录中还没有的受管 PHP，在已有发布时直接下载预构建版本，见[受管 PHP](#受管-php) |
 | `composer` | `build`、`run`、`package` | SKERNEL 找到的第一个可用的 Composer 2，否则是它自己的，与 [`new`](#new) 相同 |
 | `run.watch` | `run` | `false` |
 | `run.watch-files` | `run` | `["*.php", ".env", ".env.*", "composer.json", "composer.lock"]` |
@@ -72,6 +74,20 @@ SKERNEL 用自己构建的静态 PHP 来构建、运行和打包项目，而不�
 
 当项目安装通过要求或冲突限制了 `ext-swoole` 或 `ext-redis` 的版本时，SKERNEL 会构建它接受的最新 PECL 稳定版。其他扩展使用 static-php-cli 选择的版本；如果构建出的扩展版本不被项目安装接受，构建会失败，而不是继续使用。
 
+构建运行时之前，SKERNEL 先到 [super-kernel-tools/runtimes](https://github.com/super-kernel-tools/runtimes) 的 Releases 中查找同一个构建。那里发布 `new` 所创建项目的运行时，包括含与不含开发依赖、加与不加 `super-kernel/redis` 的组合，以及 SKERNEL 自带 Composer 所用的 PHP。只有平台、PHP 版本、扩展、扩展版本、工具链和构建选项都与 SKERNEL 本来要做的构建完全一致时，才会使用预构建的运行时：
+
+```text
+Downloading the prebuilt PHP 8.4.27 runtime for linux-x86_64.
+```
+
+下载的归档必须与发布的 SHA-256 摘要一致，清单必须写明项目需要的内容，两个二进制文件必须与清单中的摘要一致，其中的 PHP 还必须能在本机运行，并报告项目安装接受的扩展版本，SKERNEL 才会安装它；否则命令停止。没有这样的运行时发布，或者无法访问这些 Releases 时，SKERNEL 就自己构建运行时：
+
+```text
+No prebuilt PHP 8.4.27 runtime for linux-x86_64 with the extensions imagick, phar, tokenizer was found; building it with static-php-cli.
+```
+
+把 `prebuilt` 设为 `false` 后，SKERNEL 在本机构建所有运行时，并且不再访问该仓库。
+
 SKERNEL 下载和构建的所有内容都放在它的主目录 `~/.skernel` 中，或者环境变量 `SKERNEL_HOME` 指定的目录中：
 
 ```text
@@ -88,7 +104,7 @@ SKERNEL 下载和构建的所有内容都放在它的主目录 `~/.skernel` 中�
 └── work/<job>/                  sources and build output of one build
 ```
 
-首次构建某个运行时需要联网，还需要 static-php-cli 要求的构建工具，例如 C 编译器、`perl`、`re2c`、`autoconf`、`automake`、`cmake`、`libtool` 和 `gettext`。SKERNEL 从不安装系统软件包；构建失败时，static-php-cli 在 STDERR 上的输出会指出缺少什么，该次构建的目录会保留下来供检查。static-php-cli 的二进制和 Zig 在运行前都会按固定的 SHA-256 摘要校验，所以镜像无法篡改或替换 Zig。php.net 和 PECL 的查询结果以及 Zig 镜像列表都缓存一天，这些站点无法访问时沿用缓存的结果。
+下载预构建的运行时只需要联网。构建运行时除了联网，还需要 static-php-cli 要求的构建工具，例如 C 编译器、`perl`、`re2c`、`autoconf`、`automake`、`cmake`、`libtool` 和 `gettext`。SKERNEL 从不安装系统软件包；构建失败时，static-php-cli 在 STDERR 上的输出会指出缺少什么，该次构建的目录会保留下来供检查。static-php-cli 的二进制和 Zig 在运行前都会按固定的 SHA-256 摘要校验，所以镜像无法篡改或替换 Zig。php.net 和 PECL 的查询结果以及 Zig 镜像列表都缓存一天，这些站点无法访问时沿用缓存的结果。
 
 下载时使用环境变量指定的代理，规则与 curl 相同：HTTPS 用 `https_proxy` 或 `HTTPS_PROXY`，HTTP 用 `http_proxy` 或 `HTTP_PROXY`；`no_proxy` 或 `NO_PROXY` 列出不走代理的主机（以逗号分隔，包括其子域名）。SKERNEL 调用的 static-php-cli 和 Composer 也读取这些变量。
 
@@ -104,7 +120,7 @@ new <directory> [--composer=<binary>]
 
 已发布的 SKERNEL 会创建与自身版本完全相同的骨架，例如 SKERNEL 1.0.0-alpha.3 创建 `super-kernel/skeleton` 1.0.0-alpha.3；从源码运行的 SKERNEL 没有版本，会从开发线创建。这个版本只用于选择模板：模板不带 `composer.lock`，所以 Composer 在创建项目时解析它的依赖要求。
 
-指定 `--composer` 时使用该程序。否则 SKERNEL 使用找到的第一个可用的 Composer 2：先找 `PATH` 中的 `composer` 或 `composer.phar`，再找 `~/.local/bin/composer`、`~/bin/composer`、`~/.config/composer/vendor/bin/composer` 和 `~/.composer/vendor/bin/composer`。都没有时，它把固定版本的 Composer 下载到自己的主目录，按 SHA-256 摘要校验，再用受管 PHP 运行；这个 PHP 在首次使用时构建。
+指定 `--composer` 时使用该程序。否则 SKERNEL 使用找到的第一个可用的 Composer 2：先找 `PATH` 中的 `composer` 或 `composer.phar`，再找 `~/.local/bin/composer`、`~/bin/composer`、`~/.config/composer/vendor/bin/composer` 和 `~/.composer/vendor/bin/composer`。都没有时，它把固定版本的 Composer 下载到自己的主目录，按 SHA-256 摘要校验，再用受管 PHP 运行；这个 PHP 在首次使用时下载预构建版本或在本机构建，详见[受管 PHP](#受管-php)。此时还没有项目，也就没有配置文件，所以 `prebuilt` 设置在这里不起作用。
 
 ```text
 Project created in /path/to/my-app.
@@ -201,7 +217,7 @@ Package written to /path/to/my-app/target/my-app.
 ## 环境要求
 
 - PHP `>=8.4.27 <8.5`，并带有 `openssl`、`pcntl`、`phar`、`tokenizer` 和 `zlib` 扩展，仅在从源码运行 SKERNEL 时需要；安装时由 Composer 检查所需的 PHP 扩展。
-- 首次构建受管 PHP 时需要联网，以及 static-php-cli 的构建工具，详见[受管 PHP](#受管-php)。
+- 首次需要某个受管 PHP 时需要联网；不下载预构建版本而在本机构建时，还需要 static-php-cli 的构建工具，详见[受管 PHP](#受管-php)。
 
 ## 从源码运行
 
