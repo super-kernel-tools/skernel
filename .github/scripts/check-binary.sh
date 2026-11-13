@@ -1,6 +1,7 @@
 #!/bin/sh
-# Checks a packaged SKERNEL with an empty environment and no PHP on the PATH, then uses it to create, package, and serve
-# a project.
+# Checks a packaged SKERNEL with an empty environment and no PHP on the PATH, then uses it to create, build, package, and
+# serve a project. build needs the managed PHP with the project's development requirements and package the one without
+# them, so both are downloaded prebuilt, or built when they are not published.
 set -eu
 
 binary=$1
@@ -36,6 +37,7 @@ env -i "$binary" list --raw
 
 "$binary" new "$work/app"
 printf '{"package": {"output": "%s"}}\n' "$work/app-binary" >"$work/app/skernel.json"
+"$binary" build -d "$work/app"
 "$binary" package -d "$work/app"
 
 mkdir "$work/elsewhere"

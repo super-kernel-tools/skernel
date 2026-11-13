@@ -210,7 +210,7 @@ Package written to /path/to/my-app/target/my-app.
 
 ## 发布
 
-推送一个符合 [SemVer 2.0](https://semver.org) 的标签（例如 `1.2.3` 或 `1.3.0-rc.1`，不带 `v` 前缀）就会发布一个 [GitHub Release](https://github.com/super-kernel-tools/skernel/releases)，其中包含 `linux-x86_64`、`linux-aarch64`、`macos-aarch64` 和 `macos-x86_64` 各一个二进制。发布之前，每个二进制都要通过创建、打包并运行一个项目的检查。其他标签会失败。
+推送一个符合 [SemVer 2.0](https://semver.org) 的标签（例如 `1.2.3` 或 `1.3.0-rc.1`，不带 `v` 前缀）就会发布一个 [GitHub Release](https://github.com/super-kernel-tools/skernel/releases)，其中包含 `linux-x86_64`、`linux-aarch64`、`macos-aarch64` 和 `macos-x86_64` 各一个二进制。发布之前，每个二进制都要通过创建、构建、打包并运行一个项目的检查。其他标签会失败。
 
 最新的标签始终是[最新发布](https://github.com/super-kernel-tools/skernel/releases/latest)，`self-update` 安装的就是它，无论版本号如何。SKERNEL 不维护旧版本线，也不支持退回旧版本。
 
