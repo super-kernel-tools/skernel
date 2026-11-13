@@ -563,12 +563,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/super-kernel/di.git",
-                "reference": "0a41eb1fd6a7987e1887fa98578dfefc7efd11df"
+                "reference": "beb4114b9b6717f2865ecf1dca85bc2ae464c8b8"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/super-kernel/di/zipball/0a41eb1fd6a7987e1887fa98578dfefc7efd11df",
-                "reference": "0a41eb1fd6a7987e1887fa98578dfefc7efd11df",
+                "url": "https://api.github.com/repos/super-kernel/di/zipball/beb4114b9b6717f2865ecf1dca85bc2ae464c8b8",
+                "reference": "beb4114b9b6717f2865ecf1dca85bc2ae464c8b8",
                 "shasum": ""
             },
             "require": {
@@ -603,7 +603,7 @@
                 "issues": "https://github.com/super-kernel/di/issues",
                 "source": "https://github.com/super-kernel/di/tree/main"
             },
-            "time": "2026-11-11T02:20:01+00:00"
+            "time": "2026-11-13T01:51:36+00:00"
         },
         {
             "name": "super-kernel/event",
@@ -698,12 +698,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/super-kernel/exception-dispatcher.git",
-                "reference": "fd6e330e8b4358d2d8c8ff97448726cca913dd1e"
+                "reference": "ebdbd779e2587fab9ee95a9649de4ebfca8b4842"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/super-kernel/exception-dispatcher/zipball/fd6e330e8b4358d2d8c8ff97448726cca913dd1e",
-                "reference": "fd6e330e8b4358d2d8c8ff97448726cca913dd1e",
+                "url": "https://api.github.com/repos/super-kernel/exception-dispatcher/zipball/ebdbd779e2587fab9ee95a9649de4ebfca8b4842",
+                "reference": "ebdbd779e2587fab9ee95a9649de4ebfca8b4842",
                 "shasum": ""
             },
             "require": {
@@ -716,6 +716,9 @@
             "require-dev": {
                 "friendsofphp/php-cs-fixer": "^3.95.27",
                 "phpunit/phpunit": "^13.4.5"
+            },
+            "suggest": {
+                "super-kernel/logger": "Provides the SuperKernel\\Contract\\StdoutLoggerInterface through which the exception dispatcher logs unhandled exceptions; the dispatcher cannot be created without one."
             },
             "default-branch": true,
             "type": "library",
@@ -733,7 +736,7 @@
                 "issues": "https://github.com/super-kernel/exception-dispatcher/issues",
                 "source": "https://github.com/super-kernel/exception-dispatcher/tree/main"
             },
-            "time": "2026-11-11T02:20:25+00:00"
+            "time": "2026-11-13T01:51:26+00:00"
         },
         {
             "name": "super-kernel/framework",
