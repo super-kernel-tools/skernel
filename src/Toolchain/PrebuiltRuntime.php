@@ -7,6 +7,7 @@ namespace Src\Toolchain;
 use PharData;
 use Src\Filesystem\Directory;
 use Src\Project\JsonFile;
+use Src\Toolchain\Exception\DownloadNotFoundException;
 use Symfony\Component\Console\Exception\RuntimeException;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Process\Process;
@@ -16,6 +17,7 @@ use function basename;
 use function chmod;
 use function dirname;
 use function hash_file;
+use function implode;
 use function is_array;
 use function is_file;
 use function preg_match;
@@ -49,7 +51,7 @@ final readonly class PrebuiltRuntime
      * @param Runtime $runtime The runtime to install, which names its version and the files of its directory
      *
      * @return bool Whether the runtime was installed; false when none is published for it or the releases cannot be
-     *              reached
+     *              reached, after a line that says which and that the runtime is built instead
      *
      * @throws RuntimeException When a published runtime cannot be downloaded, does not match its digest or its
      *                          manifest, does not run here, has an extension version the project does not accept, or
@@ -64,7 +66,25 @@ final readonly class PrebuiltRuntime
 
         try {
             $published = Download::contents($url . '.sha256');
-        } catch (RuntimeException) {
+        } catch (DownloadNotFoundException) {
+            $output->writeln(sprintf(
+                'No prebuilt PHP %s runtime for %s with the extensions %s was found; building it with static-php-cli.',
+                $runtime->version,
+                $platform,
+                implode(', ', $extensions->names),
+            ), OutputInterface::OUTPUT_RAW);
+
+            return false;
+        } catch (RuntimeException $exception) {
+            $output->writeln(sprintf(
+                'The prebuilt runtimes could not be reached: %s Building PHP %s for %s with the extensions %s with '
+                . 'static-php-cli.',
+                $exception->getMessage(),
+                $runtime->version,
+                $platform,
+                implode(', ', $extensions->names),
+            ), OutputInterface::OUTPUT_RAW);
+
             return false;
         }
 

@@ -80,10 +80,16 @@ Before SKERNEL builds a runtime, it looks for the same build in the releases of 
 Downloading the prebuilt PHP 8.4.27 runtime for linux-x86_64.
 ```
 
-SKERNEL installs the download only when the archive matches its published SHA-256 digest, its manifest names what the project needs, both binaries match the digests in the manifest, and its PHP runs on the machine and reports extension versions that the installation accepts; otherwise the command stops. When no such runtime is published, or the releases cannot be reached, SKERNEL builds the runtime:
+SKERNEL installs the download only when the archive matches its published SHA-256 digest, its manifest names what the project needs, both binaries match the digests in the manifest, and its PHP runs on the machine and reports extension versions that the installation accepts; otherwise the command stops. When no such runtime is published, SKERNEL builds the runtime:
 
 ```text
 No prebuilt PHP 8.4.27 runtime for linux-x86_64 with the extensions imagick, phar, tokenizer was found; building it with static-php-cli.
+```
+
+When the releases cannot be reached, SKERNEL names the request that failed and builds the runtime as well:
+
+```text
+The prebuilt runtimes could not be reached: Unable to download https://github.com/super-kernel-tools/runtimes/releases/download/php-8.4.27/php-8.4.27-linux-x86_64-0123456789abcdef.tar.gz.sha256. Building PHP 8.4.27 for linux-x86_64 with the extensions imagick, phar, tokenizer with static-php-cli.
 ```
 
 With `prebuilt` set to `false`, SKERNEL builds every runtime on the machine and never contacts that repository.
@@ -107,6 +113,8 @@ Everything SKERNEL downloads and builds lives in its home directory, `~/.skernel
 Downloading a prebuilt runtime needs only network access. Building a runtime needs network access and the build tools that static-php-cli requires, such as a C compiler, `perl`, `re2c`, `autoconf`, `automake`, `cmake`, `libtool`, and `gettext`. SKERNEL never installs system packages; when a build fails, static-php-cli's output on STDERR names what is missing, and the job's directory is kept for inspection. The static-php-cli binary and Zig are verified against their pinned SHA-256 digests before they run, so a mirror can neither alter nor replace Zig. php.net and PECL answers and the Zig mirror list are cached for a day and reused when those sites cannot be reached.
 
 Downloads go through the proxy that the environment names, as with curl: `https_proxy` or `HTTPS_PROXY` for HTTPS, `http_proxy` or `HTTP_PROXY` for HTTP, and `no_proxy` or `NO_PROXY` for the comma-separated hosts, with their subdomains, that bypass it. static-php-cli and Composer, which SKERNEL runs, read the same variables.
+
+A request for a release index, a list, or a digest that receives no response or a server error is tried twice more, after one second and after two; an answer such as a missing file is final. A download that ends before the length the server announced stops the command and says how much arrived, so that running it again retries it.
 
 ## Commands
 

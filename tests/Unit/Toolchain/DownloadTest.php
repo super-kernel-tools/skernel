@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Src\Tests\Unit\Toolchain;
 
 use Src\Toolchain\Download;
+use Src\Toolchain\Exception\DownloadNotFoundException;
 use Symfony\Component\Console\Exception\RuntimeException;
 
 use function file_put_contents;
@@ -62,6 +63,16 @@ final class DownloadTest extends ToolchainTestCase
         self::assertSame([
             $this->home . '/source',
         ], glob($this->home . '/{,.}*[!.]', GLOB_BRACE));
+    }
+
+    public function testReportsAMissingLocalFileAsNotFound(): void
+    {
+        try {
+            Download::contents('file://' . $this->home . '/missing');
+            self::fail('A missing local file must be reported as not found.');
+        } catch (DownloadNotFoundException $exception) {
+            self::assertSame('Unable to download file://' . $this->home . '/missing.', $exception->getMessage());
+        }
     }
 
     public function testDiscardsAFileWhoseDigestDiffers(): void

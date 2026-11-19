@@ -81,17 +81,8 @@ final readonly class RuntimeProvider
             return $runtime;
         }
 
-        if ($prebuilt) {
-            if ($this->prebuiltRuntime->install($runtime, $extensions, $output)) {
-                return $runtime;
-            }
-
-            $output->writeln(sprintf(
-                'No prebuilt PHP %s runtime for %s with the extensions %s was found; building it with static-php-cli.',
-                $version,
-                $platform,
-                implode(', ', $extensions->names),
-            ), OutputInterface::OUTPUT_RAW);
+        if ($prebuilt && $this->prebuiltRuntime->install($runtime, $extensions, $output)) {
+            return $runtime;
         }
 
         $sources = [];

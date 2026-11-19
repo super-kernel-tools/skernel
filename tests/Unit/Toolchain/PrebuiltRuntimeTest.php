@@ -4,18 +4,25 @@ declare(strict_types=1);
 
 namespace Src\Tests\Unit\Toolchain;
 
+use Src\Toolchain\DailyCache;
 use Src\Toolchain\ExtensionRequirements;
+use Src\Toolchain\ExtensionVersions;
+use Src\Toolchain\Home;
 use Src\Toolchain\Platform;
+use Src\Toolchain\PrebuiltRuntime;
 use Src\Toolchain\Runtime;
 use Symfony\Component\Console\Exception\RuntimeException;
 use Symfony\Component\Console\Output\BufferedOutput;
 
 use function basename;
 use function dirname;
+use function fclose;
 use function file_put_contents;
 use function glob;
 use function is_executable;
 use function str_repeat;
+use function stream_socket_get_name;
+use function stream_socket_server;
 
 final class PrebuiltRuntimeTest extends ToolchainTestCase
 {
@@ -50,7 +57,39 @@ final class PrebuiltRuntimeTest extends ToolchainTestCase
             'phar',
         ]), $output));
 
-        self::assertSame('', $output->fetch());
+        self::assertSame(
+            'No prebuilt PHP 8.4.27 runtime for ' . Platform::current() . ' with the extensions phar was found; '
+            . "building it with static-php-cli.\n",
+            $output->fetch(),
+        );
+        self::assertDirectoryDoesNotExist($this->home . '/runtimes');
+        self::assertDirectoryDoesNotExist($this->home . '/work');
+    }
+
+    public function testInstallsNothingWhenTheReleasesCannotBeReached(): void
+    {
+        $socket = stream_socket_server('tcp://127.0.0.1:0');
+        self::assertNotFalse($socket);
+        $releases = 'http://' . stream_socket_get_name($socket, false) . '/';
+        fclose($socket);
+        $runtime = $this->runtime();
+        $output = new BufferedOutput();
+        $prebuiltRuntime = new PrebuiltRuntime(
+            new Home(),
+            new ExtensionVersions(new DailyCache(new Home())),
+            $releases,
+        );
+
+        self::assertFalse($prebuiltRuntime->install($runtime, new ExtensionRequirements([
+            'phar',
+        ]), $output));
+
+        self::assertSame(
+            'The prebuilt runtimes could not be reached: Unable to download ' . $releases . 'php-8.4.27/php-8.4.27-'
+            . Platform::current() . '-' . basename(dirname($runtime->php)) . '.tar.gz.sha256. Building PHP 8.4.27 for '
+            . Platform::current() . " with the extensions phar with static-php-cli.\n",
+            $output->fetch(),
+        );
         self::assertDirectoryDoesNotExist($this->home . '/runtimes');
         self::assertDirectoryDoesNotExist($this->home . '/work');
     }
