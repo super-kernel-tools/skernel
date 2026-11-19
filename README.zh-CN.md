@@ -80,10 +80,16 @@ SKERNEL 用自己构建的静态 PHP 来构建、运行和打包项目，而不�
 Downloading the prebuilt PHP 8.4.27 runtime for linux-x86_64.
 ```
 
-下载的归档必须与发布的 SHA-256 摘要一致，清单必须写明项目需要的内容，两个二进制文件必须与清单中的摘要一致，其中的 PHP 还必须能在本机运行，并报告项目安装接受的扩展版本，SKERNEL 才会安装它；否则命令停止。没有这样的运行时发布，或者无法访问这些 Releases 时，SKERNEL 就自己构建运行时：
+下载的归档必须与发布的 SHA-256 摘要一致，清单必须写明项目需要的内容，两个二进制文件必须与清单中的摘要一致，其中的 PHP 还必须能在本机运行，并报告项目安装接受的扩展版本，SKERNEL 才会安装它；否则命令停止。没有这样的运行时发布时，SKERNEL 就自己构建运行时：
 
 ```text
 No prebuilt PHP 8.4.27 runtime for linux-x86_64 with the extensions imagick, phar, tokenizer was found; building it with static-php-cli.
+```
+
+无法访问这些 Releases 时，SKERNEL 会指出失败的请求，同样自己构建运行时：
+
+```text
+The prebuilt runtimes could not be reached: Unable to download https://github.com/super-kernel-tools/runtimes/releases/download/php-8.4.27/php-8.4.27-linux-x86_64-0123456789abcdef.tar.gz.sha256. Building PHP 8.4.27 for linux-x86_64 with the extensions imagick, phar, tokenizer with static-php-cli.
 ```
 
 把 `prebuilt` 设为 `false` 后，SKERNEL 在本机构建所有运行时，并且不再访问该仓库。
@@ -107,6 +113,8 @@ SKERNEL 下载和构建的所有内容都放在它的主目录 `~/.skernel` 中�
 下载预构建的运行时只需要联网。构建运行时除了联网，还需要 static-php-cli 要求的构建工具，例如 C 编译器、`perl`、`re2c`、`autoconf`、`automake`、`cmake`、`libtool` 和 `gettext`。SKERNEL 从不安装系统软件包；构建失败时，static-php-cli 在 STDERR 上的输出会指出缺少什么，该次构建的目录会保留下来供检查。static-php-cli 的二进制和 Zig 在运行前都会按固定的 SHA-256 摘要校验，所以镜像无法篡改或替换 Zig。php.net 和 PECL 的查询结果以及 Zig 镜像列表都缓存一天，这些站点无法访问时沿用缓存的结果。
 
 下载时使用环境变量指定的代理，规则与 curl 相同：HTTPS 用 `https_proxy` 或 `HTTPS_PROXY`，HTTP 用 `http_proxy` 或 `HTTP_PROXY`；`no_proxy` 或 `NO_PROXY` 列出不走代理的主机（以逗号分隔，包括其子域名）。SKERNEL 调用的 static-php-cli 和 Composer 也读取这些变量。
+
+查询版本索引、列表或摘要的请求没有收到响应或收到服务器错误时，会在 1 秒和 2 秒后各再试一次；缺少文件之类的明确回答不再重试。下载在服务器声明的长度之前中断时，命令停止并说明已收到多少，再次运行即可重试。
 
 ## 命令
 
